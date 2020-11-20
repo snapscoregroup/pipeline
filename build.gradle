@@ -1,0 +1,111 @@
+group 'com.snapscore'
+version "${JAR_VERSION}"
+
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+    }
+    dependencies {
+        classpath 'org.owasp:dependency-check-gradle:5.0.0'
+
+        classpath "org.jfrog.buildinfo:build-info-extractor-gradle:latest.release"
+
+        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+
+    }
+}
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'maven-publish'
+apply plugin: 'com.github.johnrengelman.shadow'
+
+sourceCompatibility = 14.0
+targetCompatibility = 14.0
+
+repositories {
+    mavenCentral()
+}
+
+configurations.all {
+    resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
+}
+
+def vertxVersion = '3.9.3'
+
+dependencies {
+
+    // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
+    compile group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.10.0'
+
+    compile "io.projectreactor.netty:reactor-netty:0.9.5.RELEASE"
+    compile "io.projectreactor:reactor-core:3.3.3.RELEASE"
+
+    testCompile("io.projectreactor:reactor-test:3.3.3.RELEASE")
+    testCompile 'io.projectreactor.tools:blockhound:1.0.2.RELEASE'
+
+    testCompile group: 'junit', name: 'junit', version: '4.12'
+
+    // https://mvnrepository.com/artifact/org.mockito/mockito-all
+    testCompile group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+
+    // Vertx LIBS
+    compile group: 'io.vertx', name: 'vertx-core', version: "${vertxVersion}"
+    testCompile group: 'io.vertx', name: 'vertx-unit', version: "${vertxVersion}"
+
+    // logback
+    compile group: 'ch.qos.logback', name: 'logback-classic', version: '1.2.3'
+    compile group: 'ch.qos.logback', name: 'logback-core', version: '1.2.3'
+    compile group: 'org.slf4j', name: 'slf4j-api', version: '1.7.25'
+    // https://mvnrepository.com/artifact/net.logstash.logback/logstash-logback-encoder
+    compile group: 'net.logstash.logback', name: 'logstash-logback-encoder', version: '6.4'
+    // required by logstash
+    compile group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
+
+
+
+}
+
+test {
+    testLogging {
+        events "passed", "skipped", "failed"
+    }
+}
+
+shadowJar {
+    baseName = project.name
+    classifier = ''
+    archiveVersion = version
+}
+
+jar {
+    manifest {
+        attributes 'Implementation-Title': 'pipeline',
+                'Implementation-Version': version,
+                'Main-Class': 'com.snapscore.pipeline'
+    }
+}
+
+// Allows the Fat Jar to be uploaded to Artifactory
+artifacts {
+    archives shadowJar
+}
+
+publishing {
+    publications {
+        mavenJava(MavenPublication) {
+            from components.java
+        }
+    }
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/snapscoregroup/pipeline")
+            credentials {
+                username = System.getenv("GITHUB_CREDENTIALS_USR")
+                password = System.getenv("GITHUB_CREDENTIALS_PSW")
+            }
+        }
+    }
+}

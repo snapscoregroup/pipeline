@@ -1,0 +1,390 @@
+package com.snapscore.pipeline.logging;
+
+import org.slf4j.MDC;
+
+import java.util.*;
+
+public class MDCProps {
+
+    private final static String CLASS_NAME_KEY = "class_name";
+    private final static String COMPONENT_KEY = "component";
+    private final static String SPORT_KEY = "sport";
+    private final static String PROVIDER_KEY = "provider";
+    private final static String EVENT_TYPE_KEY = "event_type";
+    private final static String EVENT_ID_OF_PROVIDER_KEY_PATTERN = "event_id_prov_%s";
+    private final static String STAGE_ID_OF_PROVIDER_KEY_PATTERN = "stage_id_prov_%s";
+    private final static String TEAM_ID_OF_PROVIDER_KEY_PATTERN = "team_id_prov_%s_"; // tailing underscore is on purpose
+    private final static String PLAYER_ID_KEY = "player_id"; // TODO replace with pattern like other entity types ...
+    private final static String ANY_ID_KEY_PATTERN = "any_id_%s";
+    private final static String EXECUTION_KEY = "execution";
+
+    private String className;
+    private String component;
+    private String sport;
+    private String provider;
+    private String eventType;
+    private Map<Integer, String> stageIdsByProvider;
+    private Map<Integer, String> eventIdsByProvider;
+    private List<Map<Integer, String>> teamIdsByProviderList;
+    private String playerId;
+    private List<String> anyIdList;
+    private String execution;
+
+    // Package private on purpose because he fields need to be mutable sp we want very controlled access to instantiation and usage.
+    MDCProps() {
+    }
+
+    private MDCProps(String className,
+                     String component,
+                     String sport,
+                     String provider,
+                     String eventType,
+                     Map<Integer, String> stageIdsByProvider,
+                     Map<Integer, String> eventIdsByProvider,
+                     List<Map<Integer, String>> teamIdsByProviderList,
+                     String playerId,
+                     List<String> anyIdList,
+                     String execution) {
+        this.className = className;
+        this.component = component;
+        this.sport = sport;
+        this.provider = provider;
+        this.eventType = eventType;
+        this.stageIdsByProvider = stageIdsByProvider;
+        this.eventIdsByProvider = eventIdsByProvider;
+        this.teamIdsByProviderList = teamIdsByProviderList;
+        this.playerId = playerId;
+        this.anyIdList = anyIdList;
+        this.execution = execution;
+    }
+
+    MDCProps shallowMerge(MDCProps other) {
+        return new MDCProps(
+                other.className != null ? other.className : this.className,
+                other.component != null ? other.component : this.component,
+                other.sport != null ? other.sport : this.sport,
+                other.provider != null ? other.provider : this.provider,
+                other.eventType != null ? other.eventType : this.eventType,
+                // TODO consider merging the values of individual maps/lists here
+                other.stageIdsByProvider != null && !other.stageIdsByProvider.isEmpty() ? other.stageIdsByProvider : this.stageIdsByProvider,
+                other.eventIdsByProvider != null && !other.eventIdsByProvider.isEmpty() ? other.eventIdsByProvider : this.eventIdsByProvider,
+                other.teamIdsByProviderList != null && !other.teamIdsByProviderList.isEmpty() ? other.teamIdsByProviderList : this.teamIdsByProviderList,
+                other.playerId != null ? other.playerId : this.playerId,
+                other.anyIdList != null && !other.anyIdList.isEmpty() ? other.anyIdList : this.anyIdList,
+                other.execution != null ? other.execution : this.execution
+        );
+    }
+
+    MDCProps copy() {
+        return new MDCProps().shallowMerge(this);
+    }
+
+    void setPropsToMDC() {
+        if (this.className != null) MDC.put(CLASS_NAME_KEY, this.className);
+        if (this.component != null) MDC.put(COMPONENT_KEY, this.component);
+        if (this.sport != null) MDC.put(SPORT_KEY, this.sport);
+        if (this.provider != null) MDC.put(PROVIDER_KEY, this.provider);
+        if (this.eventType != null) MDC.put(EVENT_TYPE_KEY, this.eventType);
+        if (this.execution != null) MDC.put(EXECUTION_KEY, this.execution);
+        setMDCEntityIds(this.stageIdsByProvider, STAGE_ID_OF_PROVIDER_KEY_PATTERN);
+        setMDCEntityIds(this.eventIdsByProvider, EVENT_ID_OF_PROVIDER_KEY_PATTERN);
+        setMDCTeamIds();
+        if (this.playerId != null) MDC.put(PLAYER_ID_KEY, this.playerId);
+        setMDCAnyListValues(anyIdList, MDCProps.ANY_ID_KEY_PATTERN);
+    }
+
+    private void setMDCTeamIds() {
+        if (this.teamIdsByProviderList != null) {
+            List<Map<Integer, String>> teamIdsByProviderList = this.teamIdsByProviderList;
+            for (int teamIdx = 0; teamIdx < teamIdsByProviderList.size(); teamIdx++) {
+                Map<Integer, String> teamIdsByProvider = teamIdsByProviderList.get(teamIdx);
+                String keyPattern = MDCProps.TEAM_ID_OF_PROVIDER_KEY_PATTERN + teamIdx;
+                setMDCEntityIds(teamIdsByProvider, keyPattern);
+            }
+        }
+    }
+
+    private void setMDCEntityIds(Map<Integer, String> idsByProvider, String keyPattern) {
+        if (idsByProvider != null && !idsByProvider.isEmpty()) {
+            idsByProvider.forEach((providerId, eventId) -> {
+                String kay = String.format(keyPattern, providerId);
+                setMDCProviderEventId(kay, eventId);
+            });
+        }
+    }
+
+    private void setMDCProviderEventId(String providerId, String eventId) {
+        if (providerId != null && eventId != null) {
+            MDC.put(providerId, eventId);
+        }
+    }
+
+    private void setMDCAnyListValues(List<String> valueList, String keyPattern) {
+        if (valueList != null) {
+            for (int valueIdx = 0; valueIdx < valueList.size(); valueIdx++) {
+                String value = valueList.get(valueIdx);
+                String key = String.format(keyPattern, valueIdx);
+                MDC.put(key, value);
+            }
+        }
+    }
+
+
+    public MDCProps cls(Class<?> clazz) {
+        this.className = clazz.getSimpleName();
+        return this;
+    }
+
+    /**
+     * Can be a string which helps you identify the code path or method or class or component inside the code bose
+     */
+    public MDCProps comp(String component) {
+        this.component = component;
+        return this;
+    }
+
+    public MDCProps sp(String sport) {
+        this.sport = sport;
+        return this;
+    }
+
+    public MDCProps prov(String provider) {
+        this.provider = provider;
+        return this;
+    }
+
+    public MDCProps evTy(String eventType) {
+        this.eventType = eventType;
+        return this;
+    }
+
+    public MDCProps exec(String execution) {
+        this.execution = execution;
+        return this;
+    }
+
+
+
+    // STAGE IDS ========================================================
+
+    // useful for ids from ProviderValue
+    public MDCProps stgIds(Map<Integer, String> stageIdsByProvider) {
+        this.stageIdsByProvider = stageIdsByProvider != null ? new HashMap<>(stageIdsByProvider) : Collections.emptyMap();
+        return this;
+    }
+
+    public MDCProps stgId(int stageId, int providerId) {
+        putStageId(toString(stageId), providerId);
+        return this;
+    }
+
+    public MDCProps stgId(String stageId, int providerId) {
+        putStageId(stageId, providerId);
+        return this;
+    }
+
+    public MDCProps stgIdInternal(int stageId) {
+        putStageId(toString(stageId), 1);
+        return this;
+    }
+
+    public MDCProps stgIdInternal(String stageId) {
+        putStageId(stageId, 1);
+        return this;
+    }
+
+    public MDCProps stgIdEnet(int stageId) {
+        putStageId(toString(stageId), 2);
+        return this;
+    }
+
+    public MDCProps stgIdEnet(String stageId) {
+        putStageId(stageId, 2);
+        return this;
+    }
+
+    private void putStageId(String stageId, int providerId) {
+        if (stageId != null && providerId > 0) {
+            if (this.stageIdsByProvider == null) {
+                this.stageIdsByProvider = new HashMap<>(2);
+            }
+            this.stageIdsByProvider.put(providerId, stageId);
+        }
+    }
+
+    // EVENT IDS ========================================================
+
+    // useful for ids from ProviderValue
+    public MDCProps eIds(Map<Integer, String> eventIdsByProvider) {
+        this.eventIdsByProvider = eventIdsByProvider != null ? new HashMap<>(eventIdsByProvider) : Collections.emptyMap();
+        return this;
+    }
+
+    public MDCProps eId(String eventId, int providerId) {
+        putEventId(eventId, providerId);
+        return this;
+    }
+
+    public MDCProps eId(int eventId, int providerId) {
+        putEventId(toString(eventId), providerId);
+        return this;
+    }
+
+    // provider specific convenience methods
+
+    public MDCProps eIdEnet(String eventId) {
+        putEventId(eventId, 2);
+        return this;
+    }
+
+    public MDCProps eIdEnet(int eventId) {
+        putEventId(toString(eventId), 2);
+        return this;
+    }
+
+    public MDCProps eIdInternal(String eventId) {
+        putEventId(eventId, 1);
+        return this;
+    }
+
+    public MDCProps eIdInternal(int eventId) {
+        putEventId(toString(eventId), 1);
+        return this;
+    }
+
+    private void putEventId(String eventId, int providerId) {
+        if (eventId != null && providerId > 0) {
+            if (this.eventIdsByProvider == null) {
+                this.eventIdsByProvider = new HashMap<>(2);
+            }
+            this.eventIdsByProvider.put(providerId, eventId);
+        }
+    }
+
+    // TEAM IDS ========================================================
+
+    public MDCProps tIds(Map<Integer, String> ... eventIdsByProviders) {
+        if (eventIdsByProviders != null) {
+            List<Map<Integer, String>> allTeamIdslist = new ArrayList<>(eventIdsByProviders.length);
+            for (Map<Integer, String> eventIdsByProvider : eventIdsByProviders) {
+                Map<Integer, String> copy = eventIdsByProvider != null ? new HashMap<>(eventIdsByProvider) : Collections.emptyMap();
+                allTeamIdslist.add(copy);
+            }
+            this.teamIdsByProviderList = allTeamIdslist;
+        }
+        return this;
+    }
+
+    public MDCProps tId(String teamId, int providerId) {
+        putTeamId(teamId, providerId);
+        return this;
+    }
+
+    public MDCProps tId(int teamId, int providerId) {
+        putTeamId(toString(teamId), providerId);
+        return this;
+    }
+
+    public MDCProps tIdInternal(String teamId) {
+        putTeamId(teamId, 1);
+        return this;
+    }
+
+    public MDCProps tIdInternal(int teamId) {
+        putTeamId(toString(teamId), 1);
+        return this;
+    }
+
+    public MDCProps tIdEnet(String teamId) {
+        putTeamId(teamId, 2);
+        return this;
+    }
+
+    public MDCProps tIdEnet(int teamId) {
+        putTeamId(toString(teamId), 2);
+        return this;
+    }
+
+    public MDCProps tIds(List<String> teamIds, int providerId) {
+        if (teamIds != null) {
+            for (String teamId : teamIds) {
+                putTeamId(teamId, providerId);
+            }
+        }
+        return this;
+    }
+
+//    public MDCProps tIds(List<Integer> teamIds, int providerId) {
+//        if (teamIds != null) {
+//            for (Integer teamId : teamIds) {
+//                putTeamId(toString(teamId), providerId);
+//            }
+//        }
+//        return this;
+//    }
+
+
+    private void putTeamId(String teamId, int providerId) {
+        if (teamId != null && providerId > 0) {
+            if (this.teamIdsByProviderList == null) {
+                this.teamIdsByProviderList = new ArrayList<>(2);
+            }
+            Map<Integer, String> teamIdByProvider = new HashMap<>(2);
+            teamIdByProvider.put(providerId, teamId);
+            this.teamIdsByProviderList.add(teamIdByProvider);
+        }
+    }
+
+
+    // PLAYER IDS ========================================================
+
+    // TODO provide a map based approach ...
+
+    public MDCProps pId(String playerId) {
+        this.playerId = playerId;
+        return this;
+    }
+
+    public MDCProps pId(int playerId) {
+        this.playerId = toString(playerId);
+        return this;
+    }
+
+
+    // ANY IDS ========================================================
+
+    // Use specialised methods for event, team, and stage ids!
+    // Use this ONLY if there is no specialised method and it does not make sense to add it
+    public MDCProps anyId(long anyId) {
+        putAnyId(toString(anyId));
+        return this;
+    }
+
+    // Use specialised methods for event, team, and stage ids!
+    // Use this ONLY if there is no specialised method and it does not make sense to add it
+    public MDCProps anyId(String anyId) {
+        putAnyId(anyId);
+        return this;
+    }
+
+    private void putAnyId(String anyId) {
+        if (anyId != null) {
+            if (this.anyIdList == null) {
+                this.anyIdList = new ArrayList<>(2);
+            }
+            this.anyIdList.add(anyId);
+        }
+    }
+
+    // OTHER ... ========================================================
+
+    private String toString(int intValue) {
+        return String.valueOf(intValue);
+    }
+
+    private String toString(long longValue) {
+        return String.valueOf(longValue);
+    }
+
+
+}
