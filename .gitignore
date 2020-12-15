@@ -1,1 +1,34 @@
-.idea
+build/
+
+.idea/
+
+.DS_Store
+
+# User-specific stuff
+.idea/**/workspace.xml
+.idea/**/tasks.xml
+.idea/**/dictionaries
+.idea/**/shelf
+
+# Sensitive or high-churn files
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+
+# Gradle
+.idea/**/gradle.xml
+.idea/**/libraries
+.gradle/
+.gradle
+
+# IntelliJ
+out/
+/build/
+
+# mpeltonen/sbt-idea plugin
+.idea_modules/
+
+application.conf
