@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.snapscore.pipeline.textsearch.FullTextSearchCacheImplPerformanceTest" tests="1" skipped="1" failures="0" errors="0" timestamp="2020-12-15T10:46:53" hostname="Janiss-MacBook-Pro.local" time="0.0">
+  <properties/>
+  <testcase name="testQueryingBigCache" classname="com.snapscore.pipeline.textsearch.FullTextSearchCacheImplPerformanceTest" time="0.0">
+    <skipped/>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[]]></system-err>
+</testsuite>
