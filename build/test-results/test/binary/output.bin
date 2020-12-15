@@ -1,5 +1,0 @@
-o11:46:53.732 [Test worker] DEBUG com.snapscore.pipeline - PrefixMap keys size = 2; total values = 2 for key Al
-u11:46:53.738 [Test worker] DEBUG com.snapscore.pipeline - PrefixMap keys size = 1; total values = 2 for key American
-u11:46:53.738 [Test worker] DEBUG com.snapscore.pipeline - PrefixMap keys size = 1; total values = 1 for key American
-q11:46:53.738 [Test worker] DEBUG com.snapscore.pipeline - PrefixMap keys size = 0; total values = 0 for key team
-t11:46:53.739 [Test worker] DEBUG com.snapscore.pipeline - PrefixMap keys size = 2; total values = 2 for key America
