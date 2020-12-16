@@ -14,7 +14,7 @@ import java.util.stream.Collectors;
 import static net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils.trim;
 
 
-public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> implements FullTextSearchRepository<T> {
+public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> implements FullTextSearchRepository<T> {
 
     private static final Logger log = Logger.setup(FullTextSearchRepositoryImpl.class);
 
@@ -88,9 +88,9 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
                     backingMap.put(key, matchingItems);
                 }
                 try {
-                    matchingItems.put(itemWrapper.getSearchableId(), itemWrapper);
+                    matchingItems.put(itemWrapper.getIdentifier(), itemWrapper);
                 } catch (Exception e) {
-                    log.error("Error putting item id {} to {}", itemWrapper.getSearchableId(), cacheName);
+                    log.error("Error putting item id {} to {}", itemWrapper.getIdentifier(), cacheName);
                 }
             }
         }
@@ -114,7 +114,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
                 SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> allPrefixMatchingItemsView = trieMaps.prefixMap(itemWordKey);
                 ConcurrentMap<String, ItemWrapper<T>> singleKeyItemsMap = allPrefixMatchingItemsView.get(itemWordKey);
                 if (singleKeyItemsMap != null) {
-                    singleKeyItemsMap.remove(item.getSearchableId()); // java.lang.NullPointerException: null
+                    singleKeyItemsMap.remove(item.getIdentifier()); // java.lang.NullPointerException: null
                     if (singleKeyItemsMap.isEmpty()) {
                         trieMaps.remove(itemWordKey);
                     } else {
@@ -130,7 +130,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
                 log.warn("{} Cannot process null item; item: {}", cacheName, item);
                 return false;
             }
-            if (item.getSearchableId() == null) {
+            if (item.getIdentifier() == null) {
                 log.warn("{} Cannot process item with null id; item: {}", cacheName, item);
                 return false;
             }
@@ -244,7 +244,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
             return trim(keyBase).toUpperCase();
         }
 
-        private List<String> sanitizeAndUpper(List<String> keyBases) {
+        private List<String> sanitizeAndUpper(Collection<String> keyBases) {
             return keyBases.stream()
                     .filter(keyBase -> keyBase != null)
                     .map(keyBase -> keyBase.trim().toUpperCase())
@@ -268,12 +268,12 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
     /**
      * Encapsulates item data in a format suited for better lookup performance
      */
-    private static class ItemWrapper<T extends FullTextSearchableEntity> implements FullTextSearchableEntity {
+    private static class ItemWrapper<T extends FullTextSearchableItem> implements FullTextSearchableItem {
 
         // upper case name of the stored item split into words
         private final T item;
         private final List<String> itemWords = new ArrayList<>();
-        private List<String> searchableNames;
+        private Collection<String> searchableNames;
 
         public ItemWrapper(T item, List<String> upperCaseNames) {
             this.item = item;
@@ -323,13 +323,13 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> im
         }
 
         @Override
-        public List<String> getSearchableNames() {
+        public Collection<String> getSearchableNames() {
             return this.searchableNames;
         }
 
         @Override
-        public String getSearchableId() {
-            return item.getSearchableId();
+        public String getIdentifier() {
+            return item.getIdentifier();
         }
 
         @Override
