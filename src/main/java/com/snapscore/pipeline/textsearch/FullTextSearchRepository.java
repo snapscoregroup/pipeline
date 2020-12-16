@@ -2,7 +2,7 @@ package com.snapscore.pipeline.textsearch;
 
 import java.util.List;
 
-public interface FullTextSearchRepository<T extends FullTextSearchableEntity> {
+public interface FullTextSearchRepository<T extends FullTextSearchableItem> {
 
     void addItem(T item);
 

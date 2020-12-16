@@ -96,7 +96,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
     }
 
 
-    private static class TestItem implements FullTextSearchableEntity {
+    private static class TestItem implements FullTextSearchableItem {
 
         private final String name;
         private final String id;
@@ -112,7 +112,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
         }
 
         @Override
-        public String getSearchableId() {
+        public String getItemIdentifier() {
             return id;
         }
     }
