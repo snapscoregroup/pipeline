@@ -112,7 +112,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
         }
 
         @Override
-        public String getItemIdentifier() {
+        public String getIdentifier() {
             return id;
         }
     }

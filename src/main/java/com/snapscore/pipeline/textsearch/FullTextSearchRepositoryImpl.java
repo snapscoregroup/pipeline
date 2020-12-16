@@ -88,9 +88,9 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                     backingMap.put(key, matchingItems);
                 }
                 try {
-                    matchingItems.put(itemWrapper.getItemIdentifier(), itemWrapper);
+                    matchingItems.put(itemWrapper.getIdentifier(), itemWrapper);
                 } catch (Exception e) {
-                    log.error("Error putting item id {} to {}", itemWrapper.getItemIdentifier(), cacheName);
+                    log.error("Error putting item id {} to {}", itemWrapper.getIdentifier(), cacheName);
                 }
             }
         }
@@ -114,7 +114,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> allPrefixMatchingItemsView = trieMaps.prefixMap(itemWordKey);
                 ConcurrentMap<String, ItemWrapper<T>> singleKeyItemsMap = allPrefixMatchingItemsView.get(itemWordKey);
                 if (singleKeyItemsMap != null) {
-                    singleKeyItemsMap.remove(item.getItemIdentifier()); // java.lang.NullPointerException: null
+                    singleKeyItemsMap.remove(item.getIdentifier()); // java.lang.NullPointerException: null
                     if (singleKeyItemsMap.isEmpty()) {
                         trieMaps.remove(itemWordKey);
                     } else {
@@ -130,7 +130,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 log.warn("{} Cannot process null item; item: {}", cacheName, item);
                 return false;
             }
-            if (item.getItemIdentifier() == null) {
+            if (item.getIdentifier() == null) {
                 log.warn("{} Cannot process item with null id; item: {}", cacheName, item);
                 return false;
             }
@@ -328,8 +328,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         }
 
         @Override
-        public String getItemIdentifier() {
-            return item.getItemIdentifier();
+        public String getIdentifier() {
+            return item.getIdentifier();
         }
 
         @Override

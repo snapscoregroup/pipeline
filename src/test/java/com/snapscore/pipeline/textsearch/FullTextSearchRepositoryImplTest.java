@@ -35,7 +35,7 @@ public class FullTextSearchRepositoryImplTest {
         trieCache.addItem(team3);
 
         List<TestTeam> matchingItems = trieCache.findMatchingItems("Al");
-        matchingItems.sort(Comparator.comparing(TestTeam::getItemIdentifier));
+        matchingItems.sort(Comparator.comparing(TestTeam::getIdentifier));
         assertEquals(List.of(team1, team2), matchingItems);
     }
 
@@ -108,7 +108,7 @@ public class FullTextSearchRepositoryImplTest {
         }
 
         @Override
-        public String getItemIdentifier() {
+        public String getIdentifier() {
             return id;
         }
     }
