@@ -14,14 +14,15 @@ import java.util.stream.Collectors;
 import static net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils.trim;
 
 
-public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> implements FullTextSearchCache<T> {
+public class FullTextSearchRepositoryImpl<T extends FullTextSearchableEntity> implements FullTextSearchRepository<T> {
 
-    private static final Logger log = Logger.setup(FullTextSearchCacheImpl.class);
+    private static final Logger log = Logger.setup(FullTextSearchRepositoryImpl.class);
 
     private final String cacheName;
 
     // maps
     private final Trie<String, ConcurrentMap<String, ItemWrapper<T>>> trieMaps = new PatriciaTrie<>();
+    // TODO add remove by id functionality ...
 
     private static final Pattern SPACE_PATTERN = Pattern.compile("\\s");
     private final int maxReturnedItemsLimit;
@@ -40,7 +41,7 @@ public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> impleme
     /**
      * @param cacheName used for logging purposes
      */
-    public FullTextSearchCacheImpl(String cacheName, int maxReturnedItemsLimit) {
+    public FullTextSearchRepositoryImpl(String cacheName, int maxReturnedItemsLimit) {
         this.cacheName = cacheName;
         this.maxReturnedItemsLimit = maxReturnedItemsLimit;
     }
@@ -87,9 +88,9 @@ public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> impleme
                     backingMap.put(key, matchingItems);
                 }
                 try {
-                    matchingItems.put(itemWrapper.getId(), itemWrapper);
+                    matchingItems.put(itemWrapper.getSearchableId(), itemWrapper);
                 } catch (Exception e) {
-                    log.error("Error putting item id {} to {}", itemWrapper.getId(), cacheName);
+                    log.error("Error putting item id {} to {}", itemWrapper.getSearchableId(), cacheName);
                 }
             }
         }
@@ -113,7 +114,7 @@ public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> impleme
                 SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> allPrefixMatchingItemsView = trieMaps.prefixMap(itemWordKey);
                 ConcurrentMap<String, ItemWrapper<T>> singleKeyItemsMap = allPrefixMatchingItemsView.get(itemWordKey);
                 if (singleKeyItemsMap != null) {
-                    singleKeyItemsMap.remove(item.getId()); // java.lang.NullPointerException: null
+                    singleKeyItemsMap.remove(item.getSearchableId()); // java.lang.NullPointerException: null
                     if (singleKeyItemsMap.isEmpty()) {
                         trieMaps.remove(itemWordKey);
                     } else {
@@ -129,7 +130,7 @@ public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> impleme
                 log.warn("{} Cannot process null item; item: {}", cacheName, item);
                 return false;
             }
-            if (item.getId() == null) {
+            if (item.getSearchableId() == null) {
                 log.warn("{} Cannot process item with null id; item: {}", cacheName, item);
                 return false;
             }
@@ -327,8 +328,8 @@ public class FullTextSearchCacheImpl<T extends FullTextSearchableEntity> impleme
         }
 
         @Override
-        public String getId() {
-            return item.getId();
+        public String getSearchableId() {
+            return item.getSearchableId();
         }
 
         @Override

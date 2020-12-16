@@ -4,16 +4,12 @@ import com.snapscore.pipeline.logging.Logger;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
-import org.slf4j.LoggerFactory;
 
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 
-public class FullTextSearchCacheImplPerformanceTest {
+public class FullTextSearchRepositoryImplPerformanceTest {
 
-    private static final Logger log = Logger.setup(FullTextSearchCacheImplPerformanceTest.class);
+    private static final Logger log = Logger.setup(FullTextSearchRepositoryImplPerformanceTest.class);
     private final HashSet<String> wordSet = new HashSet<>();
 
     @Before
@@ -32,7 +28,7 @@ public class FullTextSearchCacheImplPerformanceTest {
     @Test
     public void testQueryingBigCache() {
 
-        FullTextSearchCache<TestItem> itemsCache = new FullTextSearchCacheImpl<>("itemsCache", 25);
+        FullTextSearchRepository<TestItem> itemsCache = new FullTextSearchRepositoryImpl<>("itemsCache", 25);
 
         long start = System.currentTimeMillis();
 
@@ -88,7 +84,7 @@ public class FullTextSearchCacheImplPerformanceTest {
     }
 
 
-    private List<Integer> runCacheQueries(FullTextSearchCache<TestItem> itemsCache, int times, List<String> searchTexts) {
+    private List<Integer> runCacheQueries(FullTextSearchRepository<TestItem> itemsCache, int times, List<String> searchTexts) {
         List<Integer> foundCounts = new ArrayList<>();
         for (String searchText : searchTexts) {
             for (int i = 0; i < times / searchTexts.size(); i++) {
@@ -116,7 +112,7 @@ public class FullTextSearchCacheImplPerformanceTest {
         }
 
         @Override
-        public String getId() {
+        public String getSearchableId() {
             return id;
         }
     }

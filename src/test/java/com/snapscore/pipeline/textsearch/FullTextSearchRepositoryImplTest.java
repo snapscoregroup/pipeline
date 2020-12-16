@@ -9,7 +9,7 @@ import java.util.List;
 
 import static org.junit.Assert.assertEquals;
 
-public class FullTextSearchCacheImplTest {
+public class FullTextSearchRepositoryImplTest {
 
     private TestTeam team1;
     private TestTeam team2;
@@ -29,13 +29,13 @@ public class FullTextSearchCacheImplTest {
 
     @Test
     public void addItem() {
-        FullTextSearchCacheImpl<TestTeam> trieCache = new FullTextSearchCacheImpl<>("TestTrieCache", 100);
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
 
         List<TestTeam> matchingItems = trieCache.findMatchingItems("Al");
-        matchingItems.sort(Comparator.comparing(TestTeam::getId));
+        matchingItems.sort(Comparator.comparing(TestTeam::getSearchableId));
         assertEquals(List.of(team1, team2), matchingItems);
     }
 
@@ -43,7 +43,7 @@ public class FullTextSearchCacheImplTest {
     @Test
     public void removeItem() {
         // given
-        FullTextSearchCacheImpl<TestTeam> trieCache = new FullTextSearchCacheImpl<>("TestTrieCache", 100);
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
@@ -72,7 +72,7 @@ public class FullTextSearchCacheImplTest {
     @Test
     public void findMatchingItemsForMultiWordInput() {
 
-        FullTextSearchCacheImpl<TestTeam> trieCache = new FullTextSearchCacheImpl<>("TestTrieCache", 100);
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
@@ -108,7 +108,7 @@ public class FullTextSearchCacheImplTest {
         }
 
         @Override
-        public String getId() {
+        public String getSearchableId() {
             return id;
         }
     }

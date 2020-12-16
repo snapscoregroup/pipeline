@@ -13,6 +13,6 @@ public interface FullTextSearchableEntity {
      * @return unique entity identifier by which the entoty can be identifier when it needs to be removed from the TrieBasedCache
      * IMPORTANT: can return null, client code needs to check !!!
      */
-    String getId();
+    String getSearchableId();
 
 }
