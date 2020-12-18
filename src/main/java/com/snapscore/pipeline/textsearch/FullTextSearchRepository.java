@@ -8,6 +8,8 @@ public interface FullTextSearchRepository<T extends FullTextSearchableItem> {
 
     void removeItem(T item);
 
-    List<T> findMatchingItems(String searchText);
+    void removeItemById(String itemId);
+
+    List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit);
 
 }

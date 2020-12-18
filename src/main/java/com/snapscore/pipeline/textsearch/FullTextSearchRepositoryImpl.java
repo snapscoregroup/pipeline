@@ -3,14 +3,12 @@ package com.snapscore.pipeline.textsearch;
 import com.snapscore.pipeline.logging.Logger;
 import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
-
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-
 import static net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils.trim;
 
 
@@ -22,10 +20,11 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     // maps
     private final Trie<String, ConcurrentMap<String, ItemWrapper<T>>> trieMaps = new PatriciaTrie<>();
-    // TODO add remove by id functionality ...
+
+    // only as a helper map to track by id what we have stored here ...
+    private final ConcurrentMap<String, T> itemsByIdHelperMap = new ConcurrentHashMap<>();
 
     private static final Pattern SPACE_PATTERN = Pattern.compile("\\s");
-    private final int maxReturnedItemsLimit;
     private static final Comparator<String> STRING_COMPARATOR = String::compareTo;
     private static final Comparator<String> STRING_LENGTH_DESC_COMPARATOR = Comparator.comparingInt(String::length).reversed();
 
@@ -41,9 +40,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     /**
      * @param cacheName used for logging purposes
      */
-    public FullTextSearchRepositoryImpl(String cacheName, int maxReturnedItemsLimit) {
+    public FullTextSearchRepositoryImpl(String cacheName) {
         this.cacheName = cacheName;
-        this.maxReturnedItemsLimit = maxReturnedItemsLimit;
     }
 
     /**
@@ -60,8 +58,13 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     }
 
     @Override
-    public List<T> findMatchingItems(String searchText) {
-        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText),"Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
+    public void removeItemById(String itemId) {
+        LockingWrapper.lockAndWrite(writeLock, itemId0 -> updateHelper.removeItemById(itemId), itemId, "Error removing item from {}; itemId: {}", cacheName, itemId);
+    }
+
+    @Override
+    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit) {
+        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit),"Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
     }
 
 
@@ -70,28 +73,38 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         public void addItem(T item) {
             if (!dataCheckOk(item)) {
                 return;
+            } else {
+                addToMaps(item);
             }
+        }
+
+        private void addToMaps(T item) {
+            removePreviousVersionFromTrieMaps(item);
+
+            itemsByIdHelperMap.put(item.getIdentifier(), item);
+
             List<String> upperCaseNameKeys = stringHelper.sanitizeAndUpper(item.getSearchableNames());
             ItemWrapper<T> itemWrapper = new ItemWrapper<>(item, upperCaseNameKeys);
             List<String> itemWordKeys = itemWrapper.getItemWords();
 
-            addToMap(itemWrapper, itemWordKeys, trieMaps);
-        }
-
-        private void addToMap(ItemWrapper<T> itemWrapper,
-                              List<String> keys,
-                              Map<String, ConcurrentMap<String, ItemWrapper<T>>> backingMap) {
-            for (String key : keys) {
-                ConcurrentMap<String, ItemWrapper<T>> matchingItems = backingMap.get(key);
+            for (String key : itemWordKeys) {
+                ConcurrentMap<String, ItemWrapper<T>> matchingItems = trieMaps.get(key);
                 if (matchingItems == null) {
                     matchingItems = new ConcurrentHashMap<>();
-                    backingMap.put(key, matchingItems);
+                    trieMaps.put(key, matchingItems);
                 }
                 try {
                     matchingItems.put(itemWrapper.getIdentifier(), itemWrapper);
                 } catch (Exception e) {
                     log.error("Error putting item id {} to {}", itemWrapper.getIdentifier(), cacheName);
                 }
+            }
+        }
+
+        private void removePreviousVersionFromTrieMaps(T item) {
+            boolean alreadyExists = itemsByIdHelperMap.containsKey(item.getIdentifier());
+            if (alreadyExists) {
+                removeItemById(item.getIdentifier());
             }
         }
 
@@ -122,7 +135,15 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                     }
                 }
             }
+        }
 
+        public void removeItemById(String itemId) {
+            if (itemId != null) {
+                T itemToRemove = itemsByIdHelperMap.get(itemId);
+                if (itemToRemove != null) {
+                    removeItem(itemToRemove);
+                }
+            }
         }
 
         private boolean dataCheckOk(T item) {
@@ -146,77 +167,105 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     private class QueryHelper {
 
-        public List<T> findMatchingItems(String searchText) {
+        public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit) {
             if (!isValid(searchText)) {
                 return Collections.EMPTY_LIST;
             } else {
                 String searchTextSanitized = stringHelper.sanitizeAndUpper(searchText);
-                return doApproximateSearch(searchText, searchTextSanitized);
+                return search(searchText, searchTextSanitized, maxReturnedItemsLimit);
             }
         }
 
-        private List<T> doApproximateSearch(String searchText, String searchTextSanitized) {
+        private List<T> search(String searchText, String searchTextSanitized, int maxReturnedItemsLimit) {
             boolean hasMultipleWords = stringHelper.containsSpaces(searchTextSanitized);
             if (hasMultipleWords) {
-                List<String> searchTextWords = stringHelper.splitToMutableList(searchTextSanitized);
-                if (!isValid(searchTextWords)) {
-                    return Collections.EMPTY_LIST;
-                }
-                searchTextWords.sort(STRING_LENGTH_DESC_COMPARATOR); // big words first as they might get fewer matches than very short words
+                return searchByMultipleWordInput(searchTextSanitized, maxReturnedItemsLimit);
+            } else {
+                return doSearchBySingleWordInput(searchText, searchTextSanitized, maxReturnedItemsLimit);
+            }
+        }
 
-                int smallestMatchingMapSize = -1;
-                String smallestMatchingMapWord = null;
-                SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap = null;
-                for (String searchTextWord : searchTextWords) {
-                    SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> currPrefixMap = trieMaps.prefixMap(searchTextWord);
-                    int currMapSize = currPrefixMap.size();
-                    if (currMapSize == 0) {
-                        return Collections.EMPTY_LIST; // one of input words does not match -> return nothing ... user needs to correct input
-                    }
-                    if (smallestMatchingMapSize > -1) {
-                        if (currMapSize < smallestMatchingMapSize) {
-                            smallestMatchingMapSize = currMapSize;
-                            smallestMatchingMap = currPrefixMap;
-                            smallestMatchingMapWord = searchTextWord;
-                        }
-                    } else {
-                        smallestMatchingMapSize = currMapSize;
-                        smallestMatchingMap = currPrefixMap;
-                        smallestMatchingMapWord = searchTextWord;
-                    }
-                    if (smallestMatchingMapSize < 5) {
-                        // performance shortcut - if current result is small enough we need not go on, this match is good enough ...
-                        break;
-                    }
-                }
-
-                if (smallestMatchingMap != null) {
-                    searchTextWords.remove(smallestMatchingMapWord); // this one is already matched as it provided the prefixMap > remove from list
-                    searchTextWords.sort(STRING_COMPARATOR);
-                    List<T> matchingItems = smallestMatchingMap.values().stream()
-                            .flatMap(stagesMap -> stagesMap.values().stream())
-                            .distinct()
-                            .filter(itemWrapper -> itemWrapper.matchesAll(searchTextWords))
-                            .limit(maxReturnedItemsLimit)
-                            .map(ItemWrapper::getItem)
-                            .collect(Collectors.toList());
+        private List searchByMultipleWordInput(String searchTextSanitized, int maxReturnedItemsLimit) {
+            List<String> searchTextWords = stringHelper.splitToMutableList(searchTextSanitized);
+            if (!isValid(searchTextWords)) {
+                return Collections.EMPTY_LIST;
+            } else {
+                SmallestMatch<T> smallestMatch = findSmallestMatch(searchTextWords);
+                if (smallestMatch.smallestMatchingMap != null) {
+                    List<T> matchingItems = getResultForMultiWordSearch(maxReturnedItemsLimit, searchTextWords, smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap);
                     return matchingItems;
                 } else {
                     log.debug("{} No items found!", cacheName);
                     return Collections.EMPTY_LIST;
                 }
-
-            } else {
-                SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap = trieMaps.prefixMap(searchTextSanitized);
-                logPrefixMapInfo(searchText, prefixMap);
-                List<T> foundForSubstr = prefixMap.values().stream()
-                        .flatMap(stagesMap -> stagesMap.values().stream())
-                        .distinct()
-                        .limit(maxReturnedItemsLimit)
-                        .map(ItemWrapper::getItem)
-                        .collect(Collectors.toList());
-                return foundForSubstr;
             }
+        }
+
+        private SmallestMatch<T> findSmallestMatch(List<String> searchTextWords) {
+            searchTextWords.sort(STRING_LENGTH_DESC_COMPARATOR); // big words first as they might get fewer matches than very short words ... good for faster search
+            int smallestMatchingMapSize = -1;
+            String smallestMatchingMapWord = null;
+            SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap = null;
+
+            for (String searchTextWord : searchTextWords) {
+                SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> currPrefixMap = trieMaps.prefixMap(searchTextWord);
+                int currMapSize = currPrefixMap.size();
+                if (currMapSize == 0) {
+                    break; // one of input words does not match -> return nothing ... user needs to correct input
+                }
+                if (smallestMatchingMapSize > -1) {
+                    if (currMapSize < smallestMatchingMapSize) {
+                        smallestMatchingMapSize = currMapSize;
+                        smallestMatchingMap = currPrefixMap;
+                        smallestMatchingMapWord = searchTextWord;
+                    }
+                } else {
+                    smallestMatchingMapSize = currMapSize;
+                    smallestMatchingMap = currPrefixMap;
+                    smallestMatchingMapWord = searchTextWord;
+                }
+                if (smallestMatchingMapSize < 5) {
+                    // performance shortcut - if current result is small enough we need not go on, this match is good enough ...
+                    break;
+                }
+            }
+
+            return new SmallestMatch(smallestMatchingMapWord, smallestMatchingMap);
+        }
+
+        private List<T> getResultForMultiWordSearch(int maxReturnedItemsLimit,
+                                                    List<String> searchTextWords,
+                                                    String smallestMatchingMapWord,
+                                                    SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap) {
+            searchTextWords.remove(smallestMatchingMapWord); // this one is already matched as it provided the prefixMap > remove from list
+            searchTextWords.sort(STRING_COMPARATOR); // IMPORTANT to be sorted for the rest of the search algorithm to work correctly and to perform best
+            List<T> matchingItems = smallestMatchingMap.values().stream()
+                    .flatMap(stagesMap -> stagesMap.values().stream())
+                    .distinct()
+                    .filter(itemWrapper -> itemWrapper.matchesAll(searchTextWords))
+                    .limit(maxReturnedItemsLimit)
+                    .map(ItemWrapper::getItem)
+                    .collect(Collectors.toList());
+            return matchingItems;
+        }
+
+        private List<T> doSearchBySingleWordInput(String searchText, String searchTextSanitized, int maxReturnedItemsLimit) {
+            SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap = trieMaps.prefixMap(searchTextSanitized);
+            List<T> foundForSubstr = getResultForSingleWordSearch(searchText, maxReturnedItemsLimit, prefixMap);
+            return foundForSubstr;
+        }
+
+        private List<T> getResultForSingleWordSearch(String searchText,
+                                                     int maxReturnedItemsLimit,
+                                                     SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap) {
+            logPrefixMapInfo(searchText, prefixMap);
+            List<T> foundForSubstr = prefixMap.values().stream()
+                    .flatMap(stagesMap -> stagesMap.values().stream())
+                    .distinct()
+                    .limit(maxReturnedItemsLimit)
+                    .map(ItemWrapper::getItem)
+                    .collect(Collectors.toList());
+            return foundForSubstr;
         }
 
         private void logPrefixMapInfo(String searchTextWord, SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> currPrefixMap) {
@@ -231,6 +280,17 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             return !searchTextWords.isEmpty() && searchTextWords.size() < 15;
         }
 
+    }
+
+    private static class SmallestMatch<T extends FullTextSearchableItem> {
+        private final String smallestMatchingMapWord;
+        private final SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap;
+
+        public SmallestMatch(String smallestMatchingMapWord,
+                             SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap) {
+            this.smallestMatchingMapWord = smallestMatchingMapWord;
+            this.smallestMatchingMap = smallestMatchingMap;
+        }
     }
 
 
@@ -272,30 +332,28 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
         // upper case name of the stored item split into words
         private final T item;
-        private final List<String> itemWords = new ArrayList<>();
+        private final List<String> itemWords ;
         private Collection<String> searchableNames;
 
         public ItemWrapper(T item, List<String> upperCaseNames) {
             this.item = item;
             this.searchableNames = item.getSearchableNames();
-            for (String upperCaseName : upperCaseNames) {
-                String[] itemWordsArr = SPACE_PATTERN.split(upperCaseName);
-                Arrays.stream(itemWordsArr)
-                        .map(word -> word.intern()) // intern all words as there are many repetitions
-                        .sorted(STRING_COMPARATOR) // needs to be sorted for better search performance
-                        .forEach(itemWords::add);
-            }
+            this.itemWords = upperCaseNames.stream()
+                    .flatMap(upperCaseName -> Arrays.stream(SPACE_PATTERN.split(upperCaseName)))
+                    .sorted(STRING_COMPARATOR) // IMPORTANT! needs to be sorted for better search performance; the search algorithm relies on the being sorted!
+                    .map(word -> word.intern()) // intern all words as there are many repetitions // TODO make interning optional
+                    .collect(Collectors.toList());
         }
 
-        boolean matchesAll(List<String> searchTextWords) {
-            for (String searchTextWord : searchTextWords) {
+        boolean matchesAll(List<String> searchTextWordsSortedByNaturalOrder) {
+            for (String searchTextWord : searchTextWordsSortedByNaturalOrder) {
                 boolean matches = false;
                 for (int idx = 0; idx < itemWords.size(); idx++) {
                     String itemWord = itemWords.get(idx);
                     if (itemWord.length() >= searchTextWord.length()) {
                         int charDiff = itemWord.charAt(0) - searchTextWord.charAt(0);
                         if (charDiff > 0) {
-                            // no following itemWords can match this searchTextWords - can skip the rest
+                            // no following itemWords can match this searchTextWordsSortedByNaturalOrder - can skip the rest
                             return false;
                         } else if (charDiff == 0) {
                             matches = itemWord.startsWith(searchTextWord);
