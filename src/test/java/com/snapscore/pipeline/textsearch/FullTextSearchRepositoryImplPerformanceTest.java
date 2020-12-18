@@ -28,7 +28,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
     @Test
     public void testQueryingBigCache() {
 
-        FullTextSearchRepository<TestItem> itemsCache = new FullTextSearchRepositoryImpl<>("itemsCache", 25);
+        FullTextSearchRepository<TestItem> itemsCache = new FullTextSearchRepositoryImpl<>("itemsCache");
 
         long start = System.currentTimeMillis();
 
@@ -88,7 +88,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
         List<Integer> foundCounts = new ArrayList<>();
         for (String searchText : searchTexts) {
             for (int i = 0; i < times / searchTexts.size(); i++) {
-                List<TestItem> matchingItems = itemsCache.findMatchingItems(searchText);
+                List<TestItem> matchingItems = itemsCache.findMatchingItems(searchText, 25);
                 foundCounts.add(matchingItems.size());
             }
         }

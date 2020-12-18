@@ -101,17 +101,18 @@ public class RequestsPerSecondCounterTest {
     @Test
     public void testPassageOfTime() throws InterruptedException {
 
-        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(5, prevRequestTime);
+        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(1);
 
 
         for (int second = 0; second < 120; second++) {
 
             for (int attemptNo = 0; attemptNo < 10; attemptNo++) {
-                boolean withinLimit = requestsPerSecondCounter.incrementIfRequestWithinLimitAndGet(LocalDateTime.now());
-                System.out.println( second + " = " + withinLimit);
+                LocalDateTime now = LocalDateTime.now();
+                boolean withinLimit = requestsPerSecondCounter.incrementIfRequestWithinLimitAndGet(now);
+                System.out.println( "now = " + now + "; second = " + second + "; withinLimit = " + withinLimit);
+                Thread.sleep(100);
             }
 
-            Thread.sleep(1000);
         }
 
     }

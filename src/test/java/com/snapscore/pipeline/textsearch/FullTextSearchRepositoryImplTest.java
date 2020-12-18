@@ -29,12 +29,12 @@ public class FullTextSearchRepositoryImplTest {
 
     @Test
     public void addItem() {
-        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache");
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("Al");
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("Al", 100);
         matchingItems.sort(Comparator.comparing(TestTeam::getIdentifier));
         assertEquals(List.of(team1, team2), matchingItems);
     }
@@ -43,7 +43,7 @@ public class FullTextSearchRepositoryImplTest {
     @Test
     public void removeItem() {
         // given
-        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache");
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
@@ -52,37 +52,69 @@ public class FullTextSearchRepositoryImplTest {
 
         trieCache.removeItem(team2);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("American");
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100);
         assertEquals(List.of(team3, team4), matchingItems);
 
         // when
         trieCache.removeItem(team3);
 
         // then
-        matchingItems = trieCache.findMatchingItems("American");
+        matchingItems = trieCache.findMatchingItems("American", 100);
         assertEquals(List.of(team4), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("team");
+        matchingItems = trieCache.findMatchingItems("team", 100);
         assertEquals(Collections.EMPTY_LIST, matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("America");
+        matchingItems = trieCache.findMatchingItems("America", 100);
         assertEquals(List.of(team5, team4), matchingItems);
     }
 
     @Test
-    public void findMatchingItemsForMultiWordInput() {
-
-        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache", 100);
+    public void removeItemById() {
+        // given
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache");
         trieCache.addItem(team1);
         trieCache.addItem(team2);
         trieCache.addItem(team3);
         trieCache.addItem(team4);
         trieCache.addItem(team5);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("Ame te");
+        trieCache.removeItemById(team2.getIdentifier());
+
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100);
+        assertEquals(List.of(team3, team4), matchingItems);
+
+        // when
+        trieCache.removeItemById(team3.getIdentifier());
+
+        // then
+        matchingItems = trieCache.findMatchingItems("American", 100);
+        assertEquals(List.of(team4), matchingItems);
+
+        matchingItems = trieCache.findMatchingItems("team", 100);
+        assertEquals(Collections.EMPTY_LIST, matchingItems);
+
+        matchingItems = trieCache.findMatchingItems("America", 100);
+        assertEquals(List.of(team5, team4), matchingItems);
+    }
+
+    @Test
+    public void findMatchingItemsForMultiWordInput() {
+
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache");
+        trieCache.addItem(team1);
+        trieCache.addItem(team2);
+        trieCache.addItem(team3);
+        trieCache.addItem(team4);
+        trieCache.addItem(team5);
+
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("Ame te", 100);
         assertEquals(List.of(team3), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("Ame t");
+        matchingItems = trieCache.findMatchingItems("Ame t", 100);
+        assertEquals(List.of(team3, team4), matchingItems);
+
+        matchingItems = trieCache.findMatchingItems("t Ame", 100);
         assertEquals(List.of(team3, team4), matchingItems);
     }
 
