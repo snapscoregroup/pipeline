@@ -79,7 +79,7 @@ public class MDCProps {
         if (map1 == null && map2 == null) {
             return null;
         } else {
-            Map<Integer, String> resultMap = new HashMap<>();
+            Map<Integer, String> resultMap = new HashMap<>(2);
             if (map1 != null) {
                 resultMap.putAll(map1);
             }
@@ -94,7 +94,7 @@ public class MDCProps {
         if (list1 == null && list2 == null) {
             return null;
         } else {
-            List<Map<Integer, String>> resultList = new ArrayList<>();
+            List<Map<Integer, String>> resultList = new ArrayList<>(2);
             if (list1 != list2) { // to avoid duplications of very same lists
                 if (list1 != null) {
                     resultList.addAll(list1);
