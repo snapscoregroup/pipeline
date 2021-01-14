@@ -34,22 +34,32 @@ public class Logger {
     }
 
     public static Logger setup(UnaryOperator<MDCProps> mdcProps) {
-        MDCProps mdcPropsNew = mdcProps.apply(new MDCProps());
-        return new Logger(mdcPropsNew);
+        try {
+            MDCProps mdcPropsNew = mdcProps.apply(new MDCProps());
+            return new Logger(mdcPropsNew);
+        } catch (Exception e) {
+            LOGGER.error("Error setting up logger!", e);
+            return Logger.woSetup();
+        }
     }
 
     public Logger decorateSetup(UnaryOperator<MDCProps> mdcPropsToAdd) {
-        MDCProps propsToAdd = mdcPropsToAdd.apply(new MDCProps());
-        if (propsToAdd != null) {
-            MDCProps mergedProps;
-            if (this.mdcProps != null) {
-                mergedProps = this.mdcProps.merge(propsToAdd);
+        try {
+            MDCProps propsToAdd = mdcPropsToAdd.apply(new MDCProps());
+            if (propsToAdd != null) {
+                MDCProps mergedProps;
+                if (this.mdcProps != null) {
+                    mergedProps = this.mdcProps.merge(propsToAdd);
+                } else {
+                    mergedProps = propsToAdd.copy();
+                }
+                return new Logger(mergedProps);
             } else {
-                mergedProps = propsToAdd.copy();
+                return new Logger(new MDCProps());
             }
-            return new Logger(mergedProps);
-        } else {
-            return new Logger(new MDCProps());
+        } catch (Exception e) {
+            LOGGER.error("Error decorating logger!", e);
+            return this;
         }
     }
 
