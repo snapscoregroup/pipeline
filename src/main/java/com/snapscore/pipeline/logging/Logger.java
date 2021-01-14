@@ -43,7 +43,7 @@ public class Logger {
         if (propsToAdd != null) {
             MDCProps mergedProps;
             if (this.mdcProps != null) {
-                mergedProps = this.mdcProps.shallowMerge(propsToAdd);
+                mergedProps = this.mdcProps.merge(propsToAdd);
             } else {
                 mergedProps = propsToAdd.copy();
             }

@@ -58,26 +58,63 @@ public class MDCProps {
         this.execution = execution;
     }
 
-    MDCProps shallowMerge(MDCProps other) {
+    MDCProps merge(MDCProps other) {
+        mergeLists(this.teamIdsByProviderList, other.teamIdsByProviderList);
         return new MDCProps(
                 other.className != null ? other.className : this.className,
                 other.component != null ? other.component : this.component,
                 other.sport != null ? other.sport : this.sport,
                 other.provider != null ? other.provider : this.provider,
                 other.eventType != null ? other.eventType : this.eventType,
-                // TODO consider merging the values of individual maps/lists here
-                other.stageIdsByProvider != null && !other.stageIdsByProvider.isEmpty() ? other.stageIdsByProvider : this.stageIdsByProvider,
-                other.eventIdsByProvider != null && !other.eventIdsByProvider.isEmpty() ? other.eventIdsByProvider : this.eventIdsByProvider,
-                other.teamIdsByProviderList != null && !other.teamIdsByProviderList.isEmpty() ? other.teamIdsByProviderList : this.teamIdsByProviderList,
+                mergeMaps(this.stageIdsByProvider, other.stageIdsByProvider),
+                mergeMaps(this.eventIdsByProvider, other.eventIdsByProvider),
+                mergeLists(this.teamIdsByProviderList, other.teamIdsByProviderList),
                 other.playerId != null ? other.playerId : this.playerId,
                 other.anyIdList != null && !other.anyIdList.isEmpty() ? other.anyIdList : this.anyIdList,
                 other.execution != null ? other.execution : this.execution
         );
     }
 
-    MDCProps copy() {
-        return new MDCProps().shallowMerge(this);
+    Map<Integer, String> mergeMaps(Map<Integer, String> map1, Map<Integer, String> map2) {
+        if (map1 == null && map2 == null) {
+            return null;
+        } else {
+            Map<Integer, String> resultMap = new HashMap<>();
+            if (map1 != null) {
+                resultMap.putAll(map1);
+            }
+            if (map2 != null) {
+                resultMap.putAll(map2);
+            }
+            return resultMap;
+        }
     }
+
+    List<Map<Integer, String>> mergeLists(List<Map<Integer, String>> list1, List<Map<Integer, String>> list2) {
+        if (list1 == null && list2 == null) {
+            return null;
+        } else {
+            List<Map<Integer, String>> resultList = new ArrayList<>();
+            if (list1 != list2) { // to avoid duplications of very same lists
+                if (list1 != null) {
+                    resultList.addAll(list1);
+                }
+                if (list2 != null) {
+                    resultList.addAll(list2);
+                }
+            } else {
+                if (list1 != null) {
+                    resultList.addAll(list1);
+                }
+            }
+            return resultList;
+        }
+    }
+
+    MDCProps copy() {
+        return new MDCProps().merge(this);
+    }
+
 
     void setPropsToMDC() {
         if (this.className != null) MDC.put(CLASS_NAME_KEY, this.className);
@@ -162,7 +199,6 @@ public class MDCProps {
         this.execution = execution;
         return this;
     }
-
 
 
     // STAGE IDS ========================================================
@@ -263,10 +299,10 @@ public class MDCProps {
 
     // TEAM IDS ========================================================
 
-    public MDCProps tIds(Map<Integer, String> ... eventIdsByProviders) {
-        if (eventIdsByProviders != null) {
-            List<Map<Integer, String>> allTeamIdslist = new ArrayList<>(eventIdsByProviders.length);
-            for (Map<Integer, String> eventIdsByProvider : eventIdsByProviders) {
+    public MDCProps tIds(Map<Integer, String>... teamIdsByProviders) {
+        if (teamIdsByProviders != null) {
+            List<Map<Integer, String>> allTeamIdslist = new ArrayList<>(teamIdsByProviders.length);
+            for (Map<Integer, String> eventIdsByProvider : teamIdsByProviders) {
                 Map<Integer, String> copy = eventIdsByProvider != null ? new HashMap<>(eventIdsByProvider) : Collections.emptyMap();
                 allTeamIdslist.add(copy);
             }
