@@ -87,8 +87,8 @@ public class SequentialFluxProcessorTest extends TestCase {
                                 e -> {
                                     throw new RuntimeException(e);
                                 },
-                                loggingInfo
-                        ),
+                                loggingInfo,
+                                Schedulers.parallel()),
                         loggingInfo
                 );
                 sequentialInputs.add(sequentialInput);
