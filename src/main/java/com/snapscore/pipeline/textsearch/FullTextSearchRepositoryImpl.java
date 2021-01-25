@@ -32,7 +32,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     private final QueryHelper queryHelper = new QueryHelper();
     private final StringHelper stringHelper = new StringHelper();
 
-    private final ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock();
+    private final ReentrantReadWriteLock reentrantReadWriteLock = new ReentrantReadWriteLock(false); // false - important for performance reasons
     private final ReentrantReadWriteLock.ReadLock readLock = reentrantReadWriteLock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = reentrantReadWriteLock.writeLock();
 
@@ -167,32 +167,32 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     private class QueryHelper {
 
-        public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit) {
+        public List<T> findMatchingItems(String searchText, int returnedItemsLimit) {
             if (!isValid(searchText)) {
                 return Collections.EMPTY_LIST;
             } else {
                 String searchTextSanitized = stringHelper.sanitizeAndUpper(searchText);
-                return search(searchText, searchTextSanitized, maxReturnedItemsLimit);
+                return search(searchText, searchTextSanitized, returnedItemsLimit);
             }
         }
 
-        private List<T> search(String searchText, String searchTextSanitized, int maxReturnedItemsLimit) {
+        private List<T> search(String searchText, String searchTextSanitized, int returnedItemsLimit) {
             boolean hasMultipleWords = stringHelper.containsSpaces(searchTextSanitized);
             if (hasMultipleWords) {
-                return searchByMultipleWordInput(searchTextSanitized, maxReturnedItemsLimit);
+                return searchByMultipleWordInput(searchTextSanitized, returnedItemsLimit);
             } else {
-                return doSearchBySingleWordInput(searchText, searchTextSanitized, maxReturnedItemsLimit);
+                return doSearchBySingleWordInput(searchText, searchTextSanitized, returnedItemsLimit);
             }
         }
 
-        private List searchByMultipleWordInput(String searchTextSanitized, int maxReturnedItemsLimit) {
+        private List searchByMultipleWordInput(String searchTextSanitized, int returnedItemsLimit) {
             List<String> searchTextWords = stringHelper.splitToMutableList(searchTextSanitized);
             if (!isValid(searchTextWords)) {
                 return Collections.EMPTY_LIST;
             } else {
                 SmallestMatch<T> smallestMatch = findSmallestMatch(searchTextWords);
                 if (smallestMatch.smallestMatchingMap != null) {
-                    List<T> matchingItems = getResultForMultiWordSearch(maxReturnedItemsLimit, searchTextWords, smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap);
+                    List<T> matchingItems = getResultForMultiWordSearch(returnedItemsLimit, searchTextWords, smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap);
                     return matchingItems;
                 } else {
                     log.debug("{} No items found!", cacheName);
@@ -233,7 +233,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             return new SmallestMatch(smallestMatchingMapWord, smallestMatchingMap);
         }
 
-        private List<T> getResultForMultiWordSearch(int maxReturnedItemsLimit,
+        private List<T> getResultForMultiWordSearch(int returnedItemsLimit,
                                                     List<String> searchTextWords,
                                                     String smallestMatchingMapWord,
                                                     SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap) {
@@ -243,7 +243,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                     .flatMap(stagesMap -> stagesMap.values().stream())
                     .distinct()
                     .filter(itemWrapper -> itemWrapper.matchesAll(searchTextWords))
-                    .limit(maxReturnedItemsLimit)
+                    .limit(returnedItemsLimit)
                     .map(ItemWrapper::getItem)
                     .collect(Collectors.toList());
             return matchingItems;
