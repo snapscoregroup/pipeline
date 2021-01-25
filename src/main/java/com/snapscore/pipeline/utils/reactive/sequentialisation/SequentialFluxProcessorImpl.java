@@ -70,7 +70,6 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
         Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
         loggerDecorated.info("Entered processNext {}", enqueuedInput.loggingInfo.getMessage());
         logIfWaitingForTooLong(enqueuedInput);
-        // TODO problematic here ... the flux might sreal the calling thread and process the whole sequence on it ... we should provide a mechanism to avoid this ...
         enqueuedInput.sequentialFluxSubscriber.subscribe( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
                 () -> dequeueCurrentAndProcessNext(enqueuedInput)
