@@ -76,6 +76,33 @@ public class LoggerExamplesTest {
     }
 
     @Test
+    public void loggingProviderMappedEventIdsDecoratedByAdditionalEventIds() throws InterruptedException {
+
+        Logger logger = Logger.setup(props -> props.eIdEnet("861345"));
+        logger.info("Processing event ...");
+
+        Logger loggerDecorated = logger.decorateSetup(props -> props.eIdInternal("123"));
+        loggerDecorated.info("Processing internal event ...");
+
+        Thread.sleep(1000); // let logging get written to file
+    }
+
+    @Test
+    public void loggingTeamIdsDecoratedByAdditionalTeamIds() throws InterruptedException {
+
+        Logger logger = Logger.setup(props -> props.tIdEnet("861345"));
+        logger.info("Processing team ...");
+
+        Logger loggerDecorated = logger.decorateSetup(props -> props.tIdInternal("123"));
+        loggerDecorated.info("Processing internal team ...");
+
+        Logger loggerDecorated2 = loggerDecorated.decorateSetup(props -> props.comp("some component"));
+        loggerDecorated2.info("Processing internal team 2 ...");
+
+        Thread.sleep(1000); // let logging get written to file
+    }
+
+    @Test
     public void loggingProviderTeamIds() throws InterruptedException {
 
         Logger.setup(mdc -> mdc.stgIdEnet("861345").tIdEnet("9584844").tIdEnet(988484))
