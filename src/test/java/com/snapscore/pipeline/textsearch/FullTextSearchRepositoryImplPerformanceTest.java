@@ -6,6 +6,7 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.*;
+import java.util.function.Predicate;
 
 public class FullTextSearchRepositoryImplPerformanceTest {
 
@@ -88,7 +89,7 @@ public class FullTextSearchRepositoryImplPerformanceTest {
         List<Integer> foundCounts = new ArrayList<>();
         for (String searchText : searchTexts) {
             for (int i = 0; i < times / searchTexts.size(); i++) {
-                List<TestItem> matchingItems = itemsCache.findMatchingItems(searchText, 25);
+                List<TestItem> matchingItems = itemsCache.findMatchingItems(searchText, 25, Predicate.isEqual(true));
                 foundCounts.add(matchingItems.size());
             }
         }
