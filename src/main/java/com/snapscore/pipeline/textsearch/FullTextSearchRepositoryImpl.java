@@ -66,8 +66,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     }
 
     @Override
-    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
-        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, predicate), "Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
+    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> filter) {
+        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter), "Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
     }
 
 

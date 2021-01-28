@@ -11,6 +11,6 @@ public interface FullTextSearchRepository<T extends FullTextSearchableItem> {
 
     void removeItemById(String itemId);
 
-    List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> predicate);
+    List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> filter);
 
 }
