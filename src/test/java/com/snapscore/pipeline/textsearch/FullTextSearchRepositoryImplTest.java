@@ -3,9 +3,12 @@ package com.snapscore.pipeline.textsearch;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.awt.*;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
 
 import static org.junit.Assert.assertEquals;
 
@@ -22,7 +25,7 @@ public class FullTextSearchRepositoryImplTest {
         team1 = new TestTeam("1", "Alfa");
         team2 = new TestTeam("2", "Alb");
         team3 = new TestTeam("3", "American team");
-        team4 = new TestTeam("4", "American tornado");
+        team4 = new TestTeam("4", "American tornado", true);
         team5 = new TestTeam("5", "America sucks");
     }
 
@@ -118,20 +121,44 @@ public class FullTextSearchRepositoryImplTest {
         assertEquals(List.of(team3, team4), matchingItems);
     }
 
+    @Test
+    public void findMatchingItemsExcludePredicate() {
+        FullTextSearchRepositoryImpl<TestTeam> trieCache = new FullTextSearchRepositoryImpl<>("TestTrieCache");
+        trieCache.addItem(team3);
+        trieCache.addItem(team4);
+
+        Predicate<FullTextSearchableItem> predicate = p -> !((TestTeam) p).isPlaceHolder;
+
+        List<TestTeam> collect = List.of(team3).stream().filter(predicate).collect(Collectors.toList());
+        assertEquals(1, collect.size());
+
+        List<TestTeam> matchingItems = trieCache.findMatchingItemss("Ame", 100, predicate);
+        assertEquals(1, matchingItems.size());
+    }
+
     private static class TestTeam implements FullTextSearchableItem {
 
         private final String id;
         private final List<String> names;
+        private final boolean isPlaceHolder;
 
         public TestTeam(String id, String name) {
             this.id = id;
             this.names = List.of(name);
+            this.isPlaceHolder = false;
         }
 
 
         public TestTeam(String id, List<String> names) {
             this.id = id;
             this.names = names;
+            this.isPlaceHolder = false;
+        }
+
+        public TestTeam(String id, String name, boolean isPlaceHolder) {
+            this.id = id;
+            this.names = List.of(name);
+            this.isPlaceHolder = isPlaceHolder;
         }
 
         @Override
