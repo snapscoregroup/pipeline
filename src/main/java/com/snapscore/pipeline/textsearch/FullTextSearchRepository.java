@@ -1,6 +1,7 @@
 package com.snapscore.pipeline.textsearch;
 
 import java.util.List;
+import java.util.function.Predicate;
 
 public interface FullTextSearchRepository<T extends FullTextSearchableItem> {
 
@@ -10,6 +11,6 @@ public interface FullTextSearchRepository<T extends FullTextSearchableItem> {
 
     void removeItemById(String itemId);
 
-    List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit);
+    List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> predicate);
 
 }

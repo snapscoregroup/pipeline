@@ -66,11 +66,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     }
 
     @Override
-    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit) {
-        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, null), "Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
-    }
-
-    public List<T> findMatchingItemss(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
+    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
         return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, predicate), "Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
     }
 
@@ -252,7 +248,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             return smallestMatchingMap.values().stream()
                     .flatMap(stagesMap -> stagesMap.values().stream())
                     .distinct()
-                    .filter(predicate)
+                    .filter(itemWrapper -> predicate.test(itemWrapper.item))
                     .filter(itemWrapper -> itemWrapper.matchesAll(searchTextWords))
                     .limit(returnedItemsLimit)
                     .map(ItemWrapper::getItem)
@@ -273,8 +269,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             return prefixMap.values().stream()
                     .flatMap(stagesMap -> stagesMap.values().stream())
                     .distinct()
+                    .filter(itemWrapper -> predicate.test(itemWrapper.item))
                     .limit(maxReturnedItemsLimit)
-                    .filter(i -> predicate.test(i))
                     .map(ItemWrapper::getItem)
                     .collect(Collectors.toList());
         }

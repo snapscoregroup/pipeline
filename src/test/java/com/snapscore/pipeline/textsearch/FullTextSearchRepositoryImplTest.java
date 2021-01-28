@@ -20,6 +20,8 @@ public class FullTextSearchRepositoryImplTest {
     private TestTeam team4;
     private TestTeam team5;
 
+    private Predicate<FullTextSearchableItem> predicateTrue = p -> true;
+
     @Before
     public void setUp() throws Exception {
         team1 = new TestTeam("1", "Alfa");
@@ -37,7 +39,7 @@ public class FullTextSearchRepositoryImplTest {
         trieCache.addItem(team2);
         trieCache.addItem(team3);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("Al", 100);
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("Al", 100, predicateTrue);
         matchingItems.sort(Comparator.comparing(TestTeam::getIdentifier));
         assertEquals(List.of(team1, team2), matchingItems);
     }
@@ -55,20 +57,20 @@ public class FullTextSearchRepositoryImplTest {
 
         trieCache.removeItem(team2);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100);
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100, predicateTrue);
         assertEquals(List.of(team3, team4), matchingItems);
 
         // when
         trieCache.removeItem(team3);
 
         // then
-        matchingItems = trieCache.findMatchingItems("American", 100);
+        matchingItems = trieCache.findMatchingItems("American", 100, predicateTrue);
         assertEquals(List.of(team4), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("team", 100);
+        matchingItems = trieCache.findMatchingItems("team", 100, predicateTrue);
         assertEquals(Collections.EMPTY_LIST, matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("America", 100);
+        matchingItems = trieCache.findMatchingItems("America", 100, predicateTrue);
         assertEquals(List.of(team5, team4), matchingItems);
     }
 
@@ -84,20 +86,20 @@ public class FullTextSearchRepositoryImplTest {
 
         trieCache.removeItemById(team2.getIdentifier());
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100);
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("American", 100, predicateTrue);
         assertEquals(List.of(team3, team4), matchingItems);
 
         // when
         trieCache.removeItemById(team3.getIdentifier());
 
         // then
-        matchingItems = trieCache.findMatchingItems("American", 100);
+        matchingItems = trieCache.findMatchingItems("American", 100, predicateTrue);
         assertEquals(List.of(team4), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("team", 100);
+        matchingItems = trieCache.findMatchingItems("team", 100, predicateTrue);
         assertEquals(Collections.EMPTY_LIST, matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("America", 100);
+        matchingItems = trieCache.findMatchingItems("America", 100, predicateTrue);
         assertEquals(List.of(team5, team4), matchingItems);
     }
 
@@ -111,13 +113,13 @@ public class FullTextSearchRepositoryImplTest {
         trieCache.addItem(team4);
         trieCache.addItem(team5);
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItems("Ame te", 100);
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("Ame te", 100, predicateTrue);
         assertEquals(List.of(team3), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("Ame t", 100);
+        matchingItems = trieCache.findMatchingItems("Ame t", 100, predicateTrue);
         assertEquals(List.of(team3, team4), matchingItems);
 
-        matchingItems = trieCache.findMatchingItems("t Ame", 100);
+        matchingItems = trieCache.findMatchingItems("t Ame", 100, predicateTrue);
         assertEquals(List.of(team3, team4), matchingItems);
     }
 
@@ -132,7 +134,7 @@ public class FullTextSearchRepositoryImplTest {
         List<TestTeam> collect = List.of(team3).stream().filter(predicate).collect(Collectors.toList());
         assertEquals(1, collect.size());
 
-        List<TestTeam> matchingItems = trieCache.findMatchingItemss("Ame", 100, predicate);
+        List<TestTeam> matchingItems = trieCache.findMatchingItems("Ame", 100, predicate);
         assertEquals(1, matchingItems.size());
     }
 
