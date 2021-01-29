@@ -32,7 +32,7 @@ public class VertxClientCallbackImpl extends AbstractClientCallback implements V
 
         try {
             if (statusCode >= 200 && statusCode <= 300) {
-                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).exec("request_success")).info("Successful response for request: {}", feedRequest.toStringBasicInfo());
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("request_success")).info("Successful response for request: {}", feedRequest.toStringBasicInfo());
                 response.bodyHandler(totalBuffer -> {
                     if (totalBuffer.getBytes().length == httpResponseBufferSize) {
                         logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("It's likely the receive buffer is not enough - currently set to: {} kbytes", httpResponseBufferSize / 1024);

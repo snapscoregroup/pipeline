@@ -36,7 +36,7 @@ public class WaitingRequestsTrackerImpl implements WaitingRequestsTracker {
     public void trackAwaitingResponse(FeedRequest feedRequest) {
         try {
             requestsAwaitingToBePulledByUrlMap.put(makeKey(feedRequest), new TrackedRequest(feedRequest));
-            logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).exec("tracking_request")).info("Tracking feedRequest: {}", feedRequest.toStringBasicInfo());
+            logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("tracking_request")).info("Tracking feedRequest: {}", feedRequest.toStringBasicInfo());
         } catch (Exception e) {
             logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("Error while tracking request! {}", feedRequest, e);
         }
