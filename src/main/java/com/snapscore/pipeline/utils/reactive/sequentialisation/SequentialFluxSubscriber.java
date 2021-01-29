@@ -33,8 +33,8 @@ public class SequentialFluxSubscriber<I, R> {
         this.subscribeOnScheduler = subscribeOnScheduler;
     }
 
-    void subscribe(Runnable onTerminateHook, Runnable onCancelHook) {
-        Consumer<? super R> subscribeConsumerWrapped = getSubscribeConsumerWrapped();
+    void subscribe(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
+        Consumer<? super R> subscribeConsumerWrapped = getSubscribeConsumerWrapped(itemEnqueuedTs);
         processingFluxCreator.apply(input)
                 .doOnTerminate(onTerminateHook)
                 .doOnCancel(onCancelHook)
@@ -42,13 +42,12 @@ public class SequentialFluxSubscriber<I, R> {
                 .subscribe(subscribeConsumerWrapped, subscribeErrorConsumer);
     }
 
-    private Consumer<? super R> getSubscribeConsumerWrapped() {
-        final long start = System.currentTimeMillis();
+    private Consumer<? super R> getSubscribeConsumerWrapped(long itemEnqueuedTs) {
         Consumer<? super R> subscribeConsumerWrapper = result -> {
             subscribeConsumer.accept(result);
             final long end = System.currentTimeMillis();
-            final long processingTimeMillis = end - start;
-            loggingInfo.decorate(logger).info("Input took {} ms to process: {}", processingTimeMillis, loggingInfo.getMessage());
+            final long processingTimeMillis = end - itemEnqueuedTs;
+            loggingInfo.decorate(logger).decorateSetup(props -> props.descriptor("input_processing_time").exec(Long.toString(processingTimeMillis))).info("Input took {} ms to process: {}", processingTimeMillis, loggingInfo.getMessage());
         };
         return subscribeConsumerWrapper;
     }

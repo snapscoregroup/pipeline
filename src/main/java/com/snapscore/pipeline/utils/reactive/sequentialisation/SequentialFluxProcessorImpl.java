@@ -47,17 +47,18 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private void enqueueAndProcess(EnqueuedInput enqueuedInput) {
         boolean canProcessImmediately;
         Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
+        int queueIdx = enqueuedInput.queueIdx;
         synchronized (queueLock) {
-            Queue<EnqueuedInput> queue = inputQueues.get(enqueuedInput.queueIdx);
+            Queue<EnqueuedInput> queue = inputQueues.get(queueIdx);
             if (queue == null) {
-                loggerDecorated.error("Failed to find queue for queueIdx {}", enqueuedInput.queueIdx);
+                loggerDecorated.error("Failed to find queue for queue no. {}", queueIdx);
                 queue = new LinkedList<>();
-                inputQueues.put(enqueuedInput.queueIdx, queue);
+                inputQueues.put(queueIdx, queue);
             }
             canProcessImmediately = queue.isEmpty();
             queue.add(enqueuedInput);
             totalEnqueuedInputs.incrementAndGet();
-            loggerDecorated.info("EnqueuedInput queue size = {}. Enqueued inputs total = {}. Last enqueued input {}", queue.size(), totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
+            loggerDecorated.info("Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", queueIdx, queue.size(), totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
         }
         loggerDecorated.info("canProcessImmediately = {} for input {}", canProcessImmediately, enqueuedInput.loggingInfo.getMessage());
         if (canProcessImmediately) {
@@ -68,40 +69,42 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
 
     private void processNext(EnqueuedInput enqueuedInput) {
         Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
-        loggerDecorated.info("Entered processNext {}", enqueuedInput.loggingInfo.getMessage());
+        loggerDecorated.info("Going to process next input: {}", enqueuedInput.loggingInfo.getMessage());
         logIfWaitingForTooLong(enqueuedInput);
         enqueuedInput.sequentialFluxSubscriber.subscribe( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
-                () -> dequeueCurrentAndProcessNext(enqueuedInput)
+                () -> dequeueCurrentAndProcessNext(enqueuedInput),
+                enqueuedInput.enqueuedTs
         );
     }
 
-    private void dequeueCurrentAndProcessNext(EnqueuedInput currElement) {
-        Logger loggerDecorated = currElement.loggingInfo.decorate(logger);
+    private void dequeueCurrentAndProcessNext(EnqueuedInput currInput) {
+        Logger loggerDecorated = currInput.loggingInfo.decorate(logger);
         try {
-            loggerDecorated.info("Entered dequeueCurrentAndProcessNext {}", currElement.loggingInfo.getMessage());
+            loggerDecorated.info("Entered dequeueCurrentAndProcessNext after finished processing input: {}", currInput.loggingInfo.getMessage());
             EnqueuedInput nextInput;
             int newQueueSize;
+            int queueIdx = currInput.queueIdx;
             synchronized (queueLock) {
-                Queue<EnqueuedInput> queue = inputQueues.get(currElement.queueIdx);
+                Queue<EnqueuedInput> queue = inputQueues.get(queueIdx);
                 queue.poll(); // dequeue the previously processed item
                 totalEnqueuedInputs.decrementAndGet();
                 newQueueSize = queue.size();
                 nextInput = queue.peek();
             }
-            loggerDecorated.info("Enqueued inputs total = {} and queue size = {} after polling last processed message: {}", totalEnqueuedInputs.get(), newQueueSize, currElement.loggingInfo.getMessage());
+            loggerDecorated.info("Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.getMessage());
             if (nextInput != null) {
                 processNext(nextInput);
             }
         } catch (Exception e) {
-            loggerDecorated.error("Error inside dequeueCurrentAndProcessNext! {}", currElement.loggingInfo.getMessage());
+            loggerDecorated.error("Error inside dequeueCurrentAndProcessNext! {}", currInput.loggingInfo.getMessage());
         }
     }
 
     private void logIfWaitingForTooLong(EnqueuedInput input) {
-        long waitingMillis = System.currentTimeMillis() - input.createdTs;
+        long waitingMillis = System.currentTimeMillis() - input.enqueuedTs;
         if (waitingMillis > 2_000) {
-            logger.decorateSetup(mdc -> mdc.exec("enqueued_input_for_too_long")).warn("EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; input: {}", waitingMillis, totalEnqueuedInputs.get(), input.loggingInfo.getMessage());
+            logger.decorateSetup(mdc -> mdc.descriptor("enqueued_input_for_too_long")).warn("EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; input: {}", waitingMillis, totalEnqueuedInputs.get(), input.loggingInfo.getMessage());
         }
     }
 
@@ -112,7 +115,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
         private final Object inputData;
         private final SequentialFluxSubscriber<?, ?> sequentialFluxSubscriber;
         private final LoggingInfo loggingInfo;
-        private final long createdTs;
+        private final long enqueuedTs;
 
         public EnqueuedInput(int queueIdx,
                              Object inputData,
@@ -122,7 +125,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             this.inputData = inputData;
             this.sequentialFluxSubscriber = sequentialFluxSubscriber;
             this.loggingInfo = loggingInfo;
-            this.createdTs = System.currentTimeMillis();
+            this.enqueuedTs = System.currentTimeMillis();
         }
     }
 

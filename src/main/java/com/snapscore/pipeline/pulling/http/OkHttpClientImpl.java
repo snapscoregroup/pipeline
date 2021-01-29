@@ -57,7 +57,7 @@ public class OkHttpClientImpl implements HttpClient {
     private void enqueue(FeedRequest feedRequest, OkHttpClientCallback responseCallback) {
         Call call = createCall(feedRequest);
         call.enqueue(responseCallback);
-        logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).exec("http_client_got_accepted_rq")).info("HttpClient accepted new request: {}", feedRequest.toStringBasicInfo());
+        logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("http_client_got_accepted_rq")).info("HttpClient accepted new request: {}", feedRequest.toStringBasicInfo());
     }
 
     private Call createCall(FeedRequest feedRequest) {

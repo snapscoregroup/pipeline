@@ -40,7 +40,7 @@ public abstract class AbstractClientCallback implements ClientCallback {
 
     @Override
     public void handleUnsuccessfulResponse(int statusCode) {
-        logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).exec("resp_status_" + statusCode)).warn("Request not successful, response code = {}; request: {}", statusCode, feedRequest.toStringBasicInfo());
+        logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("resp_status_" + statusCode)).warn("Request not successful, response code = {}; request: {}", statusCode, feedRequest.toStringBasicInfo());
         pullingStatisticsService.ifPresent(service -> service.recordFailedPullFor(feedRequest.getFeedName()));
         emitFailedRequestException();
     }

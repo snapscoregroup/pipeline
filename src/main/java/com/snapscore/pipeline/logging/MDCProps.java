@@ -17,6 +17,7 @@ public class MDCProps {
     private final static String PLAYER_ID_KEY = "player_id"; // TODO replace with pattern like other entity types ...
     private final static String ANY_ID_KEY_PATTERN = "any_id_%s";
     private final static String EXECUTION_KEY = "execution";
+    private final static String DESCRIPTOR_KEY = "descriptor";
 
     private String className;
     private String component;
@@ -29,6 +30,7 @@ public class MDCProps {
     private String playerId;
     private List<String> anyIdList;
     private String execution;
+    private String descriptor;
 
     // Package private on purpose because he fields need to be mutable sp we want very controlled access to instantiation and usage.
     MDCProps() {
@@ -44,7 +46,8 @@ public class MDCProps {
                      List<Map<Integer, String>> teamIdsByProviderList,
                      String playerId,
                      List<String> anyIdList,
-                     String execution) {
+                     String execution,
+                     String descriptor) {
         this.className = className;
         this.component = component;
         this.sport = sport;
@@ -56,6 +59,7 @@ public class MDCProps {
         this.playerId = playerId;
         this.anyIdList = anyIdList;
         this.execution = execution;
+        this.descriptor = descriptor;
     }
 
     MDCProps merge(MDCProps other) {
@@ -71,7 +75,8 @@ public class MDCProps {
                 mergeLists(this.teamIdsByProviderList, other.teamIdsByProviderList),
                 other.playerId != null ? other.playerId : this.playerId,
                 other.anyIdList != null && !other.anyIdList.isEmpty() ? other.anyIdList : this.anyIdList,
-                other.execution != null ? other.execution : this.execution
+                other.execution != null ? other.execution : this.execution,
+                other.descriptor != null ? other.descriptor : this.descriptor
         );
     }
 
@@ -122,12 +127,13 @@ public class MDCProps {
         if (this.sport != null) MDC.put(SPORT_KEY, this.sport);
         if (this.provider != null) MDC.put(PROVIDER_KEY, this.provider);
         if (this.eventType != null) MDC.put(EVENT_TYPE_KEY, this.eventType);
-        if (this.execution != null) MDC.put(EXECUTION_KEY, this.execution);
-        setMDCEntityIds(this.stageIdsByProvider, STAGE_ID_OF_PROVIDER_KEY_PATTERN);
         setMDCEntityIds(this.eventIdsByProvider, EVENT_ID_OF_PROVIDER_KEY_PATTERN);
+        setMDCEntityIds(this.stageIdsByProvider, STAGE_ID_OF_PROVIDER_KEY_PATTERN);
         setMDCTeamIds();
         if (this.playerId != null) MDC.put(PLAYER_ID_KEY, this.playerId);
         setMDCAnyListValues(anyIdList, MDCProps.ANY_ID_KEY_PATTERN);
+        if (this.execution != null) MDC.put(EXECUTION_KEY, this.execution);
+        if (this.descriptor != null) MDC.put(DESCRIPTOR_KEY, this.descriptor);
     }
 
     private void setMDCTeamIds() {
@@ -173,7 +179,7 @@ public class MDCProps {
     }
 
     /**
-     * Can be a string which helps you identify the code path or method or class or component inside the code bose
+     * Can be a string which helps you identify the code path or method or class or component inside the code base
      */
     public MDCProps comp(String component) {
         this.component = component;
@@ -195,8 +201,22 @@ public class MDCProps {
         return this;
     }
 
+    /**
+     * Used for the execution time so the passed values should be stringified numbers
+     */
     public MDCProps exec(String execution) {
         this.execution = execution;
+        return this;
+    }
+
+    /**
+     * Used for the a unique descriptive expression that can be reliably used for analytical purposes
+     * in kibana (like charts etc...)
+     *
+     * Example descriptor value: "ignoring_duplicate_request"
+     */
+    public MDCProps descriptor(String descriptor) {
+        this.descriptor = descriptor;
         return this;
     }
 
