@@ -52,22 +52,22 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
      */
     @Override
     public void addItem(T item) {
-        LockingWrapper.lockAndWrite(writeLock, item1 -> updateHelper.addItem(item1), item, "Error adding item to {}; item: {}", cacheName, item);
+        LockingWrapper.lockAndWrite(writeLock, updateHelper::addItem, item, "Error adding item to {}; item: {}", cacheName, item);
     }
 
     @Override
     public void removeItem(T item) {
-        LockingWrapper.lockAndWrite(writeLock, item1 -> updateHelper.removeItem(item1), item, "Error removing item from {}; item: {}", cacheName, item);
+        LockingWrapper.lockAndWrite(writeLock, updateHelper::removeItem, item, "Error removing item from {}; item: {}", cacheName, item);
     }
 
     @Override
     public void removeItemById(String itemId) {
-        LockingWrapper.lockAndWrite(writeLock, itemId0 -> updateHelper.removeItemById(itemId), itemId, "Error removing item from {}; itemId: {}", cacheName, itemId);
+        LockingWrapper.lockAndWrite(writeLock, updateHelper::removeItemById, itemId, "Error removing item from {}; itemId: {}", cacheName, itemId);
     }
 
     @Override
     public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> filter) {
-        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter), "Error finding matching items for seatchText '{}' in {}!", searchText, cacheName);
+        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter), "Error finding matching items for searchText '{}' in {}!", searchText, cacheName);
     }
 
 
@@ -111,6 +111,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             }
         }
 
+        // for debugging ...
         private void logSize(Map<String, ConcurrentMap<Integer, ItemWrapper<T>>> backingTrie) {
             int size = backingTrie.size();
             if (size % 100 == 0) {
@@ -151,7 +152,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
         private boolean dataCheckOk(T item) {
             if (item == null) {
-                log.warn("{} Cannot process null item; item: {}", cacheName, item);
+                log.warn("{} Cannot process null item;", cacheName);
                 return false;
             }
             if (item.getIdentifier() == null) {
@@ -172,7 +173,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
         public List<T> findMatchingItems(String searchText, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
             if (!isValid(searchText)) {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             } else {
                 String searchTextSanitized = stringHelper.sanitizeAndUpper(searchText);
                 return search(searchText, searchTextSanitized, returnedItemsLimit, predicate);
@@ -188,10 +189,10 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             }
         }
 
-        private List searchByMultipleWordInput(String searchTextSanitized, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
+        private List<T> searchByMultipleWordInput(String searchTextSanitized, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
             List<String> searchTextWords = stringHelper.splitToMutableList(searchTextSanitized);
             if (!isValid(searchTextWords)) {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             } else {
                 SmallestMatch<T> smallestMatch = findSmallestMatch(searchTextWords);
                 if (smallestMatch.smallestMatchingMap != null) {
@@ -199,7 +200,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                             smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap, predicate);
                 } else {
                     log.debug("{} No items found!", cacheName);
-                    return Collections.EMPTY_LIST;
+                    return Collections.emptyList();
                 }
             }
         }
@@ -233,7 +234,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 }
             }
 
-            return new SmallestMatch(smallestMatchingMapWord, smallestMatchingMap);
+            return new SmallestMatch<>(smallestMatchingMapWord, smallestMatchingMap);
         }
 
         private List<T> getResultForMultiWordSearch(int returnedItemsLimit,
@@ -326,7 +327,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 wordsList.addAll(Arrays.asList(words));
                 return wordsList;
             } else {
-                return Collections.EMPTY_LIST;
+                return Collections.emptyList();
             }
         }
     }
@@ -340,7 +341,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         // upper case name of the stored item split into words
         private final T item;
         private final List<String> itemWords;
-        private Collection<String> searchableNames;
+        private final Collection<String> searchableNames;
 
         public ItemWrapper(T item, List<String> upperCaseNames) {
             this.item = item;
