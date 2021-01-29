@@ -14,6 +14,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private static final Logger logger = Logger.setup(SequentialFluxProcessorImpl.class);
 
     private static final int INPUT_QUEUES_COUNT_DEFAULT = 100000;
+    public static final String UNPROCESSED_TOTAL_LOG_DESCRIPTOR = "unprocessed_total";
     private final int inputQueueCount;
 
     // as we need to ensure that access to the message queues is atomic we need to lock on this object
@@ -58,7 +59,8 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             canProcessImmediately = queue.isEmpty();
             queue.add(enqueuedInput);
             totalEnqueuedInputs.incrementAndGet();
-            loggerDecorated.info("Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", queueIdx, queue.size(), totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
+            loggerDecorated.decorateSetup(props -> props.descriptor(UNPROCESSED_TOTAL_LOG_DESCRIPTOR).exec(String.valueOf(totalEnqueuedInputs.get())))
+                    .info("Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", queueIdx, queue.size(), totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
         }
         loggerDecorated.info("canProcessImmediately = {} for input {}", canProcessImmediately, enqueuedInput.loggingInfo.getMessage());
         if (canProcessImmediately) {
@@ -92,7 +94,8 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
                 newQueueSize = queue.size();
                 nextInput = queue.peek();
             }
-            loggerDecorated.info("Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.getMessage());
+            loggerDecorated.decorateSetup(props -> props.descriptor(UNPROCESSED_TOTAL_LOG_DESCRIPTOR).exec(String.valueOf(totalEnqueuedInputs.get())))
+                    .info("Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.getMessage());
             if (nextInput != null) {
                 processNext(nextInput);
             }
