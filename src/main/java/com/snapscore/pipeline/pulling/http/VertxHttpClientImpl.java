@@ -67,7 +67,7 @@ public class VertxHttpClientImpl implements HttpClient {
             request.exceptionHandler(throwable -> clientCallback.handleException(throwable))
                     .end();
 
-            logger.decorateSetup(mdc -> mdc.descriptor("http_client_got_accepted_rq")).info("HttpClient accepted new request: {}", feedRequest.toStringBasicInfo());
+            logger.decorateSetup(mdc -> mdc.analyticsId("http_client_got_accepted_rq")).info("HttpClient accepted new request: {}", feedRequest.toStringBasicInfo());
 
         });
         return mono.publishOn(Schedulers.parallel()) // emitted results need to be published on parallel scheduler so we do not execute pulled data processing on the httpClient's own threadpool

@@ -23,7 +23,7 @@ public class OkHttpClientCallbackImpl extends AbstractClientCallback implements 
     public void onResponse(Call call, Response response) {
         try {
             if (response.isSuccessful()) {
-                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("request_success")).info("Successful response for request: {}", feedRequest.toStringBasicInfo());
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("request_success")).info("Successful response for request: {}", feedRequest.toStringBasicInfo());
                 ResponseBody responseBody = response.body();
                 if (responseBody != null) {
                     handleSuccessfulResponse(responseBody.bytes());

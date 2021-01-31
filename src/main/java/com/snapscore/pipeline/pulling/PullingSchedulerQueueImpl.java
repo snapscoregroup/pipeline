@@ -98,7 +98,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
             logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).info("New enqueued request info: {}", feedRequest.toStringBasicInfo());
             logEnqueuedRequestCount();
         } else {
-            logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("ignoring_duplicate_request")).info("FeedRequest already enqueued for pulling - ignoring: {}; ", feedRequest.toStringBasicInfo());
+            logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("ignoring_duplicate_request")).info("FeedRequest already enqueued for pulling - ignoring: {}; ", feedRequest.toStringBasicInfo());
         }
     }
 
@@ -111,7 +111,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
         if (trackedRequest.isPresent()) {
             Duration trackedDuration = trackedRequest.get().trackedDuration();
             if (trackedDuration.getSeconds() > 10 * 60_000) { // 10 mins
-                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).descriptor("request_tracked_too_long")).warn(">>> !!! Request is tracked for too long! It is possible that some pulling results are not getting emitted by the http client callback implementation and it is causing requests being incorrectly ignored !!! <<< {}", feedRequest);
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("request_tracked_too_long")).warn(">>> !!! Request is tracked for too long! It is possible that some pulling results are not getting emitted by the http client callback implementation and it is causing requests being incorrectly ignored !!! <<< {}", feedRequest);
                 return true;
             }
         }
@@ -204,15 +204,15 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
     }
 
     private void logRequestError(FeedRequest request, Throwable error) {
-        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).descriptor("request_error")).warn("Error for request: {}", request.toStringBasicInfo(), error);
+        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).analyticsId("request_error")).warn("Error for request: {}", request.toStringBasicInfo(), error);
     }
 
     private void logRetry(FeedRequest request) {
-        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).descriptor("request_retry")).info("Going to retry request after previous failure {}", request.toStringBasicInfo());
+        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).analyticsId("request_retry")).info("Going to retry request after previous failure {}", request.toStringBasicInfo());
     }
 
     private void logDelayedRetry(FeedRequest request) {
-        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).descriptor("request_retry_delay")).info("Cannot retry request yet - due to rqs per sec. limit {}", request.toStringBasicInfo());
+        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).analyticsId("request_retry_delay")).info("Cannot retry request yet - due to rqs per sec. limit {}", request.toStringBasicInfo());
     }
 
     private void logEnqueuedRequestCount() {
@@ -220,7 +220,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
     }
 
     private void logDroppingRetrying(FeedRequest request, Throwable error) {
-        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).descriptor("dropped_failed_request")).warn("Dropping request retry {} after error: ", request.toStringBasicInfo(), error);
+        logger.decorateSetup(mdc -> mdc.anyId(request.getUuid()).analyticsId("dropped_failed_request")).warn("Dropping request retry {} after error: ", request.toStringBasicInfo(), error);
     }
 
 
