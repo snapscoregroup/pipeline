@@ -1,5 +1,6 @@
 package com.snapscore.pipeline.pulling;
 
+import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -11,10 +12,11 @@ import static org.junit.Assert.assertEquals;
 public class QueueFeedRequestTest {
 
     @Test
-    public void testQueuingFeedRequests() {
+    public void testQueuingFeedRequests() throws InterruptedException {
 
         QueueFeedRequest rq1 = createRequest(FeedPriorityEnum.MEDIUM);
         QueueFeedRequest rq2 = createRequest(FeedPriorityEnum.HIGH);
+        Thread.sleep(1); // Make sure there is a slight delay between the requests so their createdDt is different
         QueueFeedRequest rq3 = createRequest(FeedPriorityEnum.MEDIUM);
         QueueFeedRequest rq4 = createRequest(FeedPriorityEnum.HIGH);
 

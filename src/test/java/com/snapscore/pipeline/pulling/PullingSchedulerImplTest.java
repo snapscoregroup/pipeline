@@ -165,7 +165,7 @@ public class PullingSchedulerImplTest {
         // when
         ScheduledFixedRequest<String> scheduledFixedRequest = pullingScheduler.schedulePullingFixedRequest(scheduledPullingKey, feedRequest, pullResultConsumerMock, pullError -> {
         }, Duration.ZERO);
-        Thread.sleep(100); // give async code time to run
+        Thread.sleep(200); // give async code time to run
 
         // then
         ArgumentCaptor<PullResult> pullResultArgumentCaptor = ArgumentCaptor.forClass(PullResult.class);
