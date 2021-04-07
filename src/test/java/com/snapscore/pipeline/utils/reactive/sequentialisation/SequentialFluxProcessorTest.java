@@ -5,6 +5,7 @@ import org.junit.Test;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Schedulers;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -17,10 +18,10 @@ public class SequentialFluxProcessorTest extends TestCase {
     public static final int HEAVY_PROCESSING_MILLIS = 0;
 
     @Test
-    public void testThatMessagesOfSingleEntityAreProcessedSequentiallyAndInCorrectOrder() throws InterruptedException {
+    public void testThatMessagesOfSingleEntityAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialFluxProcessor = new SequentialFluxProcessorImpl();
+        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl();
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 1;
         int messageCount = 10000;
@@ -35,16 +36,16 @@ public class SequentialFluxProcessorTest extends TestCase {
         final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion);
 
         // when
-        sequentialInputData.forEach(sequentialFluxProcessor::processSequentially);
+        sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
 
-        Thread.sleep(2000);
+        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(2000));
     }
 
     @Test
-    public void testThatMessagesOfMultipleEntitiesAreProcessedSequentiallyAndInCorrectOrder() throws InterruptedException {
+    public void testThatMessagesOfMultipleEntitiesAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialFluxProcessor = new SequentialFluxProcessorImpl();
+        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl();
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 10;
         int messageCount = 1000;
@@ -59,9 +60,9 @@ public class SequentialFluxProcessorTest extends TestCase {
         final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion);
 
         // when
-        sequentialInputData.forEach(sequentialFluxProcessor::processSequentially);
+        sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
 
-        Thread.sleep(2000);
+        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(2000));
     }
 
     private List<SequentialInput<TestMessage, TestMessage>> createSequentialMessage(Map<Integer, TestMessage> prevProcessedTestMessageMap,
