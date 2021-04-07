@@ -2,10 +2,11 @@ package com.snapscore.pipeline.utils.reactive.sequentialisation;
 
 import com.snapscore.pipeline.logging.Logger;
 
+import java.time.Duration;
 import java.util.LinkedList;
 import java.util.Map;
 import java.util.Queue;
-import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 
@@ -23,6 +24,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private final Map<Integer, Queue<EnqueuedInput>> inputQueues = new ConcurrentHashMap<>();
     // guarded by "queueLock"
     private final AtomicLong totalEnqueuedInputs = new AtomicLong(0);
+    private volatile CompletableFuture<Void> future;
 
     /**
      * @param inputQueueCount should be a big enough number for the passed messages to get spread out evenly
@@ -39,10 +41,17 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     }
 
     @Override
-    public <I, R> void processSequentially(SequentialInput<I, R> sequentialInput) {
+    public <I, R> void processSequentiallyAsync(SequentialInput<I, R> sequentialInput) {
         int queueIdx = sequentialInput.queueResolver.getQueueIdxFor(sequentialInput.input, inputQueueCount);
         EnqueuedInput enqueuedInput = new EnqueuedInput(queueIdx, sequentialInput.input, sequentialInput.sequentialFluxSubscriber, sequentialInput.loggingInfo);
         enqueueAndProcess(enqueuedInput);
+    }
+
+    @Override
+    public void awaitProcessingCompletion(Duration timeout) throws Exception {
+        if (totalEnqueuedInputs.get() > 0L && this.future != null) {
+            this.future.get(timeout.toMillis(), TimeUnit.MILLISECONDS);
+        }
     }
 
     private void enqueueAndProcess(EnqueuedInput enqueuedInput) {
@@ -60,6 +69,9 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             canProcessImmediately = queue.isEmpty();
             queue.add(enqueuedInput);
             queueSize = queue.size();
+            if (totalEnqueuedInputs.get() == 0L) {
+                this.future = new CompletableFuture<>();
+            }
             totalEnqueuedInputs.incrementAndGet();
         }
         loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
@@ -93,6 +105,9 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
                 Queue<EnqueuedInput> queue = inputQueues.get(queueIdx);
                 queue.poll(); // dequeue the previously processed item
                 totalEnqueuedInputs.decrementAndGet();
+                if (totalEnqueuedInputs.get() == 0L) {
+                    this.future.complete(null);
+                }
                 newQueueSize = queue.size();
                 nextInput = queue.peek();
             }
