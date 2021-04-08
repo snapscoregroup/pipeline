@@ -14,8 +14,10 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
 
     private static final Logger logger = Logger.setup(SequentialFluxProcessorImpl.class);
 
-    private static final int INPUT_QUEUES_COUNT_DEFAULT = 100000;
+    private static final int INPUT_QUEUES_COUNT_DEFAULT = 10000;
     public static final String UNPROCESSED_TOTAL_LOG_ANALYTICS_ID = "unprocessed_total";
+
+    private final String name;
     private final int inputQueueCount;
 
     // as we need to ensure that access to the message queues is atomic we need to lock on this object
@@ -28,16 +30,18 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
 
     /**
      * @param inputQueueCount should be a big enough number for the passed messages to get spread out evenly
+     * @param name if multiple instances are created
      */
-    public SequentialFluxProcessorImpl(int inputQueueCount) {
+    public SequentialFluxProcessorImpl(int inputQueueCount, String name) {
+        this.name = name;
         this.inputQueueCount = inputQueueCount;
         for (int queueIdx = 0; queueIdx < this.inputQueueCount; queueIdx++) {
             inputQueues.put(queueIdx, new LinkedList<>());
         }
     }
 
-    public SequentialFluxProcessorImpl() {
-        this(INPUT_QUEUES_COUNT_DEFAULT);
+    public SequentialFluxProcessorImpl(String name) {
+        this(INPUT_QUEUES_COUNT_DEFAULT, name);
     }
 
     @Override
@@ -62,7 +66,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
         synchronized (queueLock) {
             Queue<EnqueuedInput> queue = inputQueues.get(queueIdx);
             if (queue == null) {
-                loggerDecorated.error("Failed to find queue for queue no. {}", queueIdx);
+                loggerDecorated.error("{}: Failed to find queue for queue no. {}", this.name, queueIdx);
                 queue = new LinkedList<>();
                 inputQueues.put(queueIdx, queue);
             }
@@ -75,7 +79,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             totalEnqueuedInputs.incrementAndGet();
         }
         loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
-                .info("Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", queueIdx, queueSize, totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
+                .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", this.name, queueIdx, queueSize, totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.getMessage());
         loggerDecorated.info("canProcessImmediately = {} for input {}", canProcessImmediately, enqueuedInput.loggingInfo.getMessage());
         if (canProcessImmediately) {
             // if no previous item is being processed then we can send this one immediately
@@ -85,7 +89,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
 
     private void processNext(EnqueuedInput enqueuedInput) {
         Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
-        loggerDecorated.info("Going to process next input: {}", enqueuedInput.loggingInfo.getMessage());
+        loggerDecorated.info("{}: Going to process next input: {}", this.name, enqueuedInput.loggingInfo.getMessage());
         logIfWaitingForTooLong(enqueuedInput);
         enqueuedInput.sequentialFluxSubscriber.subscribe( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
@@ -97,7 +101,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private void dequeueCurrentAndProcessNext(EnqueuedInput currInput) {
         Logger loggerDecorated = currInput.loggingInfo.decorate(logger);
         try {
-            loggerDecorated.info("Entered dequeueCurrentAndProcessNext after finished processing input: {}", currInput.loggingInfo.getMessage());
+            loggerDecorated.info("{}: Entered dequeueCurrentAndProcessNext after finished processing input: {}", this.name, currInput.loggingInfo.getMessage());
             EnqueuedInput nextInput;
             int newQueueSize;
             int queueIdx = currInput.queueIdx;
@@ -112,19 +116,19 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
                 nextInput = queue.peek();
             }
             loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
-                    .info("Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.getMessage());
+                    .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", this.name, queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.getMessage());
             if (nextInput != null) {
                 processNext(nextInput);
             }
         } catch (Exception e) {
-            loggerDecorated.error("Error inside dequeueCurrentAndProcessNext! {}", currInput.loggingInfo.getMessage());
+            loggerDecorated.error("{}: Error inside dequeueCurrentAndProcessNext! {}", this.name, currInput.loggingInfo.getMessage());
         }
     }
 
     private void logIfWaitingForTooLong(EnqueuedInput input) {
         long waitingMillis = System.currentTimeMillis() - input.enqueuedTs;
         if (waitingMillis > 2_000) {
-            logger.decorateSetup(mdc -> mdc.analyticsId("enqueued_input_for_too_long")).warn("EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; input: {}", waitingMillis, totalEnqueuedInputs.get(), input.loggingInfo.getMessage());
+            logger.decorateSetup(mdc -> mdc.analyticsId("enqueued_input_for_too_long")).warn("{}: EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; input: {}", this.name, waitingMillis, totalEnqueuedInputs.get(), input.loggingInfo.getMessage());
         }
     }
 
