@@ -1,10 +1,16 @@
 package com.snapscore.pipeline.utils.reactive.sequentialisation;
 
+import com.snapscore.pipeline.logging.Logger;
+
 import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
 public class SequentialFluxProcessorCompletionAwaiter {
+
+    private final static Logger logger = Logger.setup(SequentialFluxProcessorCompletionAwaiter.class);
+
+    public static final int MAX_ITERATIONS_COUNT = 10_000;
 
     public SequentialFluxProcessorCompletionAwaiter() {
     }
@@ -20,7 +26,9 @@ public class SequentialFluxProcessorCompletionAwaiter {
         final long timeoutMillis = timeout.toMillis();
         final long start = System.currentTimeMillis();
 
-        while (true) {
+        for (int count = 0; count < MAX_ITERATIONS_COUNT; count++) {
+
+            logger.info("awaiting completion of processing; Iteration no. {}", count);
 
             boolean anyUnprocessedInputs = false;
 
@@ -32,7 +40,6 @@ public class SequentialFluxProcessorCompletionAwaiter {
 
                 if (sequentialFluxProcessor.getTotalUnprocessedInputs() > 0L) {
                     anyUnprocessedInputs = true;
-                    // TODO log how many iterations we did here ...
                     sequentialFluxProcessor.awaitProcessingCompletion(Duration.ofMillis(nextTimeoutMillis));
                 }
             }
