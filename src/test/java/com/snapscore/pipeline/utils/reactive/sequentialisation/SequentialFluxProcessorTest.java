@@ -21,7 +21,7 @@ public class SequentialFluxProcessorTest extends TestCase {
     public void testThatMessagesOfSingleEntityAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl();
+        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl("test-flux-processor");
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 1;
         int messageCount = 10000;
@@ -45,7 +45,7 @@ public class SequentialFluxProcessorTest extends TestCase {
     public void testThatMessagesOfMultipleEntitiesAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl();
+        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl("test-flux-processor");
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 10;
         int messageCount = 1000;
