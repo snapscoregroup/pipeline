@@ -6,16 +6,16 @@ import java.util.function.Function;
 
 public class LoggingInfo {
 
-    private final String message;
+    public final String inputDescription;
     private final Function<Logger, Logger> loggerDecorator;
 
-    public LoggingInfo(String message, Function<Logger, Logger> loggerDecorator) {
-        this.message = message;
+    public LoggingInfo(String inputDescription, Function<Logger, Logger> loggerDecorator) {
+        this.inputDescription = inputDescription;
         this.loggerDecorator = loggerDecorator;
     }
 
-    public LoggingInfo(String message) {
-        this(message, null);
+    public LoggingInfo(String inputDescription) {
+        this(inputDescription, null);
     }
 
     public Logger decorate(Logger logger) {
@@ -26,7 +26,4 @@ public class LoggingInfo {
         }
     }
 
-    public String getMessage() {
-        return message;
-    }
 }
