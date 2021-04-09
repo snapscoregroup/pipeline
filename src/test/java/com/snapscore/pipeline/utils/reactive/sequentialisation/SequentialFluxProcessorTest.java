@@ -11,7 +11,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.IntStream;
+
+import static com.snapscore.pipeline.utils.reactive.sequentialisation.TestSupport.*;
 
 public class SequentialFluxProcessorTest extends TestCase {
 
@@ -33,7 +36,7 @@ public class SequentialFluxProcessorTest extends TestCase {
             assertTrue("Error in processed message order!", isCorrectNextMessage);
         };
 
-        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion);
+        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion, this::processTestMessageFlux);
 
         // when
         sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
@@ -57,7 +60,7 @@ public class SequentialFluxProcessorTest extends TestCase {
             assertTrue("Error in processed message order!", isCorrectNextMessage);
         };
 
-        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion);
+        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessage(prevProcessedTestMessageMap, entityCount, messageCount, assertion, this::processTestMessageFlux);
 
         // when
         sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
@@ -65,10 +68,21 @@ public class SequentialFluxProcessorTest extends TestCase {
         sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(2000));
     }
 
-    private List<SequentialInput<TestMessage, TestMessage>> createSequentialMessage(Map<Integer, TestMessage> prevProcessedTestMessageMap,
-                                                                                    int entityCount,
-                                                                                    int messageCount,
-                                                                                    Consumer<TestMessage> assertion) {
+    private Flux<TestMessage> processTestMessageFlux(TestMessage testMessage1) {
+        Flux<TestMessage> testMessageProcessingFlux = Flux.just(testMessage1)
+                .publishOn(Schedulers.parallel())
+                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
+                .publishOn(Schedulers.single())
+                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
+                .publishOn(Schedulers.single());
+        return testMessageProcessingFlux;
+    }
+
+    public List<SequentialInput<TestMessage, TestMessage>> createSequentialMessage(Map<Integer, TestMessage> prevProcessedTestMessageMap,
+                                                                                   int entityCount,
+                                                                                   int messageCount,
+                                                                                   Consumer<TestMessage> assertion,
+                                                                                   Function<TestMessage, Flux<TestMessage>> processingFluxCreator) {
         IntStream.range(1, entityCount + 1).forEach(entityId -> {
             prevProcessedTestMessageMap.put(entityId, new TestMessage(entityId, 0));  // prepopulate with base message to ovoid NPE later ..
         });
@@ -83,7 +97,7 @@ public class SequentialFluxProcessorTest extends TestCase {
                         new TestQueueResolver(),
                         new SequentialFluxSubscriber<>(
                                 testMessage,
-                                testMessage1 -> processTestMessageFlux(testMessage1),
+                                processingFluxCreator,
                                 m ->  assertion.accept(m),
                                 e -> {
                                     throw new RuntimeException(e);
@@ -98,38 +112,11 @@ public class SequentialFluxProcessorTest extends TestCase {
         return sequentialInputs;
     }
 
-    private Flux<TestMessage> processTestMessageFlux(TestMessage testMessage1) {
-        Flux<TestMessage> testMessageProcessingFlux = Flux.just(testMessage1)
-                .publishOn(Schedulers.parallel())
-                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
-                .publishOn(Schedulers.single())
-                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
-                .publishOn(Schedulers.single());
-        return testMessageProcessingFlux;
-    }
-
     private void doSomeHeavyProcessing(TestMessage testMessage) {
         try {
             Thread.sleep(HEAVY_PROCESSING_MILLIS);
         } catch (InterruptedException e) {
             e.printStackTrace();
-        }
-    }
-
-    private static class TestMessage {
-        private final int entityId;
-        private final int messageNo;
-
-        public TestMessage(int entityId, int messageNo) {
-            this.entityId = entityId;
-            this.messageNo = messageNo;
-        }
-    }
-
-    private class TestQueueResolver extends QueueResolver<TestMessage> {
-        @Override
-        public int getQueueIdxFor(TestMessage input, int inputQueueCount) {
-            return calcIdx(inputQueueCount, input.entityId);
         }
     }
 
