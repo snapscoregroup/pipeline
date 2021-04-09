@@ -8,4 +8,5 @@ public interface SequentialFluxProcessor {
 
     void awaitProcessingCompletion(Duration timeout) throws Exception;
 
+    long getTotalUnprocessedInputs();
 }
