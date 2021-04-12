@@ -47,7 +47,9 @@ public class SequentialFluxSubscriber<I, R> {
             subscribeConsumer.accept(result);
             final long end = System.currentTimeMillis();
             final long processingTimeMillis = end - itemEnqueuedTs;
-            loggingInfo.decorate(logger).decorateSetup(props -> props.analyticsId("input_processing_time").exec(Long.toString(processingTimeMillis))).info("Input took {} ms to process: {}", processingTimeMillis, loggingInfo.inputDescription);
+            if (loggingInfo.logActivity) {
+                loggingInfo.decorate(logger).decorateSetup(props -> props.analyticsId("input_processing_time").exec(Long.toString(processingTimeMillis))).info("Input took {} ms to process: {}", processingTimeMillis, loggingInfo.inputDescription);
+            }
         };
         return subscribeConsumerWrapper;
     }

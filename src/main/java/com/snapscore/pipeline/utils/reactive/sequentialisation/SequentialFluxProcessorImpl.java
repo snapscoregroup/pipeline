@@ -83,9 +83,11 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             }
             totalEnqueuedInputs.incrementAndGet();
         }
-        loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
-                .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", this.name, queueIdx, queueSize, totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.inputDescription);
-        loggerDecorated.info("canProcessImmediately = {} for input {}", canProcessImmediately, enqueuedInput.loggingInfo.inputDescription);
+        if (enqueuedInput.loggingInfo.logActivity) {
+            loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
+                    .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. Just enqueued input {}", this.name, queueIdx, queueSize, totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.inputDescription);
+            loggerDecorated.info("canProcessImmediately = {} for input {}", canProcessImmediately, enqueuedInput.loggingInfo.inputDescription);
+        }
         if (canProcessImmediately) {
             // if no previous item is being processed then we can send this one immediately
             processNext(enqueuedInput);
@@ -93,8 +95,10 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     }
 
     private void processNext(EnqueuedInput enqueuedInput) {
-        Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
-        loggerDecorated.info("{}: Going to process next input: {}", this.name, enqueuedInput.loggingInfo.inputDescription);
+        if (enqueuedInput.loggingInfo.logActivity) {
+            Logger loggerDecorated = enqueuedInput.loggingInfo.decorate(logger);
+            loggerDecorated.info("{}: Going to process next input: {}", this.name, enqueuedInput.loggingInfo.inputDescription);
+        }
         logIfWaitingForTooLong(enqueuedInput);
         enqueuedInput.sequentialFluxSubscriber.subscribe( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
@@ -106,7 +110,9 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private void dequeueCurrentAndProcessNext(EnqueuedInput currInput) {
         Logger loggerDecorated = currInput.loggingInfo.decorate(logger);
         try {
-            loggerDecorated.info("{}: Entered dequeueCurrentAndProcessNext after finished processing input: {}", this.name, currInput.loggingInfo.inputDescription);
+            if (currInput.loggingInfo.logActivity) {
+                loggerDecorated.info("{}: Entered dequeueCurrentAndProcessNext after finished processing input: {}", this.name, currInput.loggingInfo.inputDescription);
+            }
             EnqueuedInput nextInput;
             int newQueueSize;
             int queueIdx = currInput.queueIdx;
@@ -120,8 +126,10 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
                 newQueueSize = queue.size();
                 nextInput = queue.peek();
             }
-            loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
-                    .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", this.name, queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.inputDescription);
+            if (currInput.loggingInfo.logActivity) {
+                loggerDecorated.decorateSetup(props -> props.analyticsId(UNPROCESSED_TOTAL_LOG_ANALYTICS_ID).exec(String.valueOf(totalEnqueuedInputs.get())))
+                        .info("{}: Input queue no. {} size = {}; Enqueued inputs total = {}. ... after polling last processed input: {}", this.name, queueIdx, newQueueSize, totalEnqueuedInputs.get(), currInput.loggingInfo.inputDescription);
+            }
             if (nextInput != null) {
                 processNext(nextInput);
             }
