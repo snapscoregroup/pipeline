@@ -91,7 +91,7 @@ public class SequentialFluxProcessorTest extends TestCase {
         for (int messageNo = 1; messageNo <= messageCount; messageNo++) {
             for (int entityId = 1; entityId <= entityCount; entityId++) {
                 TestMessage testMessage = new TestMessage(entityId, messageNo);
-                LoggingInfo loggingInfo = new LoggingInfo("entity id " + entityId);
+                LoggingInfo loggingInfo = new LoggingInfo(true, "entity id " + entityId);
                 SequentialInput<TestMessage, TestMessage> sequentialInput = new SequentialInput<>(
                         testMessage,
                         new TestQueueResolver(),

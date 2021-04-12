@@ -7,12 +7,9 @@ import reactor.core.scheduler.Schedulers;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.IntStream;
 
 import static com.snapscore.pipeline.utils.reactive.sequentialisation.TestSupport.*;
 import static org.junit.Assert.*;
@@ -150,7 +147,7 @@ public class SequentialFluxProcessorCompletionAwaiterTest {
                                                                             int entityId,
                                                                             TestMessage testMessage) {
 
-        LoggingInfo loggingInfo = new LoggingInfo("entity id " + entityId);
+        LoggingInfo loggingInfo = new LoggingInfo(true, "entity id " + entityId);
 
         SequentialInput<TestMessage, TestMessage> sequentialInput = new SequentialInput<>(
                 testMessage,

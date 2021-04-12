@@ -6,16 +6,18 @@ import java.util.function.Function;
 
 public class LoggingInfo {
 
+    public final boolean logActivity;
     public final String inputDescription;
     private final Function<Logger, Logger> loggerDecorator;
 
-    public LoggingInfo(String inputDescription, Function<Logger, Logger> loggerDecorator) {
+    public LoggingInfo(boolean logActivity, String inputDescription, Function<Logger, Logger> loggerDecorator) {
+        this.logActivity = logActivity;
         this.inputDescription = inputDescription;
         this.loggerDecorator = loggerDecorator;
     }
 
-    public LoggingInfo(String inputDescription) {
-        this(inputDescription, null);
+    public LoggingInfo(boolean logActivity, String inputDescription) {
+        this(logActivity, inputDescription, null);
     }
 
     public Logger decorate(Logger logger) {
