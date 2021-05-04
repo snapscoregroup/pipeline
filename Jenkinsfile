@@ -27,9 +27,18 @@ pipeline {
             }
         }
 
-        stage ('Gradle Build') {
+        stage ('Gradle Build Test') {
             steps {
-                sh "./gradlew clean test build publish"
+                sh "./gradlew clean test build"
+            }
+        }
+
+        stage ('Gradle Publish') {
+            when {
+                branch "master";
+            }
+            steps {
+                sh "./gradlew publish"
             }
          }
 
