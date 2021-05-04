@@ -51,6 +51,9 @@ public class VertxHttpClientImpl implements HttpClient {
                     .setHost(httpClientConfig.host())
                     .setPort(httpClientConfig.port())
                     .setURI(feedRequest.getUrl());
+            for (FeedRequestHttpHeader httpHeader : feedRequest.getHttpHeaders()) {
+                requestOptions.addHeader(httpHeader.getKey(), httpHeader.getValue());
+            }
 
             HttpClientRequest request = client.request(
                     HttpMethod.GET,
@@ -59,10 +62,6 @@ public class VertxHttpClientImpl implements HttpClient {
             );
 
             request.setTimeout(httpClientConfig.readTimeout().toMillis());
-
-            for (FeedRequestHttpHeader httpHeader : feedRequest.getHttpHeaders()) {
-                request.putHeader(httpHeader.getKey(), httpHeader.getValue());
-            }
 
             request.exceptionHandler(throwable -> clientCallback.handleException(throwable))
                     .end();
