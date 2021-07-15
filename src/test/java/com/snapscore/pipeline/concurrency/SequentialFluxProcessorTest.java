@@ -1,4 +1,4 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 import junit.framework.TestCase;
 import org.junit.Test;
@@ -14,7 +14,7 @@ import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.IntStream;
 
-import static com.snapscore.pipeline.utils.reactive.sequentialisation.TestSupport.*;
+import static com.snapscore.pipeline.concurrency.TestSupport.*;
 
 public class SequentialFluxProcessorTest extends TestCase {
 

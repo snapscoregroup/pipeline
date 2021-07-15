@@ -1,4 +1,4 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 import org.junit.Test;
 import reactor.core.publisher.Flux;
@@ -11,7 +11,7 @@ import java.util.Set;
 import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
-import static com.snapscore.pipeline.utils.reactive.sequentialisation.TestSupport.*;
+import static com.snapscore.pipeline.concurrency.TestSupport.*;
 import static org.junit.Assert.*;
 
 public class SequentialFluxProcessorCompletionAwaiterTest {

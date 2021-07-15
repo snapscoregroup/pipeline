@@ -1,4 +1,4 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 import com.snapscore.pipeline.logging.Logger;
 

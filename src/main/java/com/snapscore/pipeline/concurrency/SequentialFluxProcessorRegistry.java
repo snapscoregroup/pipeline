@@ -1,9 +1,8 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 import io.vertx.core.impl.ConcurrentHashSet;
 
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.Set;
 
 public class SequentialFluxProcessorRegistry {

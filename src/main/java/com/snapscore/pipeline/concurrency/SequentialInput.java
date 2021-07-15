@@ -1,4 +1,4 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 public class SequentialInput<I, R> {
 
