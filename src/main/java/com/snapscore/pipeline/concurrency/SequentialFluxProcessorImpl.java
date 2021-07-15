@@ -47,7 +47,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     @Override
     public <I, R> void processSequentiallyAsync(SequentialInput<I, R> sequentialInput) {
         int queueIdx = sequentialInput.queueResolver.getQueueIdxFor(sequentialInput.input, inputQueueCount);
-        EnqueuedInput enqueuedInput = new EnqueuedInput(queueIdx, sequentialInput.input, sequentialInput.sequentialFluxSubscriber, sequentialInput.loggingInfo);
+        EnqueuedInput enqueuedInput = new EnqueuedInput(queueIdx, sequentialInput.sequentialFluxSubscriber, sequentialInput.loggingInfo);
         enqueueAndProcess(enqueuedInput);
     }
 
@@ -138,10 +138,10 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
         }
     }
 
-    private void logIfWaitingForTooLong(EnqueuedInput input) {
-        long waitingMillis = System.currentTimeMillis() - input.enqueuedTs;
+    private void logIfWaitingForTooLong(EnqueuedInput enqueuedInput) {
+        long waitingMillis = System.currentTimeMillis() - enqueuedInput.enqueuedTs;
         if (waitingMillis > 2_000) {
-            logger.decorateSetup(mdc -> mdc.analyticsId("enqueued_input_for_too_long")).warn("{}: EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; input: {}", this.name, waitingMillis, totalEnqueuedInputs.get(), input.loggingInfo.inputDescription);
+            logger.decorateSetup(mdc -> mdc.analyticsId("enqueued_input_for_too_long")).warn("{}: EnqueuedInput waiting too long for processing: {} ms; Enqueued inputs total = {}; enqueuedInput: {}", this.name, waitingMillis, totalEnqueuedInputs.get(), enqueuedInput.loggingInfo.inputDescription);
         }
     }
 
@@ -149,17 +149,14 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private static class EnqueuedInput {
 
         private final int queueIdx;
-        private final Object inputData;
         private final SequentialFluxSubscriber<?, ?> sequentialFluxSubscriber;
         private final LoggingInfo loggingInfo;
         private final long enqueuedTs;
 
         public EnqueuedInput(int queueIdx,
-                             Object inputData,
                              SequentialFluxSubscriber<?, ?> sequentialFluxSubscriber,
                              LoggingInfo loggingInfo) {
             this.queueIdx = queueIdx;
-            this.inputData = inputData;
             this.sequentialFluxSubscriber = sequentialFluxSubscriber;
             this.loggingInfo = loggingInfo;
             this.enqueuedTs = System.currentTimeMillis();

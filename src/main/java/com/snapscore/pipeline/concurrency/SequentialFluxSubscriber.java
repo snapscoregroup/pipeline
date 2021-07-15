@@ -8,7 +8,7 @@ import reactor.util.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class SequentialFluxSubscriber<I, R> {
+public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberInterface {
 
     private final static Logger logger = Logger.setup(SequentialFluxSubscriber.class);
 
@@ -16,8 +16,8 @@ public class SequentialFluxSubscriber<I, R> {
     private final Function<I, Flux<R>> processingFluxCreator;
     private final Consumer<? super R> subscribeConsumer;
     private final Consumer<? super Throwable> subscribeErrorConsumer;
-    private final LoggingInfo loggingInfo;
     private final Scheduler subscribeOnScheduler;
+    private final LoggingInfo loggingInfo;
 
     public SequentialFluxSubscriber(I input,
                                     Function<I, Flux<R>> processingFluxCreator,
@@ -29,11 +29,12 @@ public class SequentialFluxSubscriber<I, R> {
         this.processingFluxCreator = processingFluxCreator;
         this.subscribeConsumer = subscribeConsumer;
         this.subscribeErrorConsumer = subscribeErrorConsumer;
-        this.loggingInfo = loggingInfo;
         this.subscribeOnScheduler = subscribeOnScheduler;
+        this.loggingInfo = loggingInfo;
     }
 
-    void subscribe(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
+    @Override
+    public void subscribe(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
         Consumer<? super R> subscribeConsumerWrapped = getSubscribeConsumerWrapped(itemEnqueuedTs);
         processingFluxCreator.apply(input)
                 .doOnTerminate(onTerminateHook)
