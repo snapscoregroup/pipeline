@@ -6,20 +6,21 @@ import java.time.Duration;
 import java.util.Set;
 import java.util.concurrent.TimeoutException;
 
+/**
+ * Makes it possible to awayt the (possibly inter-dependent) processing of specific Set of {@link ConcurrentSequentialProcessor}s
+ */
 public class ConcurrentSequentialProcessorCompletionAwaiter {
 
-    private final static Logger logger = Logger.setup(ConcurrentSequentialProcessorCompletionAwaiter.class);
-
     public static final int MAX_ITERATIONS_COUNT = 10_000;
+    private final static Logger logger = Logger.setup(ConcurrentSequentialProcessorCompletionAwaiter.class);
 
     public ConcurrentSequentialProcessorCompletionAwaiter() {
     }
 
     /**
-     *
      * @param concurrentSequentialProcessorSet a set of processors whose processing might be potentially interdependent
-     *                                   in the sense that the processing of one processor generates tasks for another processor
-     *                                   (and vice versa). As a result multiple repeated checks for completion are necessary.
+     *                                         in the sense that the processing of one processor generates tasks for another processor
+     *                                         (and vice versa). As a result multiple repeated checks for completion are necessary.
      */
     public static void awaitProcessingCompletionOf(Set<ConcurrentSequentialProcessor> concurrentSequentialProcessorSet, Duration timeout) throws Exception {
 

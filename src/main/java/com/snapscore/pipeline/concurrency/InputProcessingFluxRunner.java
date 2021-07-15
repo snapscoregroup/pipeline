@@ -3,11 +3,14 @@ package com.snapscore.pipeline.concurrency;
 import com.snapscore.pipeline.logging.Logger;
 import reactor.core.publisher.Flux;
 import reactor.core.scheduler.Scheduler;
-import reactor.util.annotation.Nullable;
 
 import java.util.function.Consumer;
 import java.util.function.Function;
 
+/**
+ * Reactor Flux-aware implementation that makes it possible to run sync or async logic wrapped inside a Callable
+ *  * The logic gets executed asynchronously, in parallel and in a strictly predefined order
+ */
 public class InputProcessingFluxRunner<I, R> extends InputProcessingRunner<I, R> {
 
     private final static Logger logger = Logger.setup(InputProcessingFluxRunner.class);

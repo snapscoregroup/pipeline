@@ -169,7 +169,7 @@ public class ConcurrentSequentialProcessorTest {
         };
 
 
-        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessageFromFuture(prevProcessedTestMessageMap, entityCount, messageCount, assertion, this::processTestMessageFuture);
+        final List<SequentialInput<TestMessage, TestMessage>> sequentialInputData = createSequentialMessageFromFuture(prevProcessedTestMessageMap, entityCount, messageCount, assertion, this::processTestMessageCallable);
 
         // when
         sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
@@ -214,10 +214,15 @@ public class ConcurrentSequentialProcessorTest {
         return sequentialInputs;
     }
 
-    private Callable<TestMessage> processTestMessageFuture(TestMessage testMessage1) {
+    private Callable<TestMessage> processTestMessageCallable(TestMessage testMessage1) {
         return () -> {
-            doSomeHeavyProcessing(testMessage1);
-            return testMessage1;
+            // inside the callable there can be a chain of async operations
+            return CompletableFuture
+                    .supplyAsync(() -> {
+                        doSomeHeavyProcessing(testMessage1);
+                        return testMessage1;
+                    }, executorService)
+                    .get();
         };
     }
 
