@@ -5,7 +5,7 @@ import com.snapscore.pipeline.logging.Logger;
 import java.util.function.Function;
 
 /**
- * Logging information that will be used by the internals of the data procecessing execution
+ * Logging information that will be used by the internals of the data processing execution
  */
 public class LoggingInfo {
 

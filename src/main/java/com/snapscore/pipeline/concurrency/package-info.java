@@ -1,5 +1,5 @@
 /**
- * The functionality in this package makes it possible to process data in fully prallel fashion while
+ * The functionality in this package makes it possible to process data in fully parallel fashion while
  * also making sure that the order of processing is correct
  *
  * <br>
