@@ -6,13 +6,14 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Scheduler;
 import reactor.core.scheduler.Schedulers;
 
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class InputProcessingFutureRunner<I, R> extends InputProcessingRunner<I, R> {
+public class InputProcessingCallableRunner<I, R> extends InputProcessingRunner<I, R> {
 
-    private final static Logger logger = Logger.setup(InputProcessingFutureRunner.class);
+    private final static Logger logger = Logger.setup(InputProcessingCallableRunner.class);
 
     /**
      * This scheduler will be used to subscribe the flux create from the specific completableFuture;
@@ -22,11 +23,11 @@ public class InputProcessingFutureRunner<I, R> extends InputProcessingRunner<I, 
 
     private final InputProcessingFluxRunner<I, R> inputProcessingFluxRunner;
 
-    public InputProcessingFutureRunner(I input,
-                                       CompletableFuture<R> inputProcessing,
-                                       LoggingInfo loggingInfo) {
+    public InputProcessingCallableRunner(I input,
+                                         Callable<R> inputProcessing,
+                                         LoggingInfo loggingInfo) {
         final Function<I, Flux<R>> processingFluxCreator = i -> {
-            return Mono.fromFuture(inputProcessing).flux();
+            return Mono.fromCallable(inputProcessing).flux();
         };
 
         final Consumer<? super R> subscribeConsumer = result -> {
