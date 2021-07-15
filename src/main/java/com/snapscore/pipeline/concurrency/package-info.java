@@ -28,9 +28,10 @@
  * <br>
  *
  * 3. Performance
- * We can separate blocking and non-blocking so that they run on different thread pools to make the most of the processing power.
+ * We can separate blocking and non-blocking code execution so that they run on different thread pools to make the most of the processing power we have
  * The definition of what will be executed by the {@link com.snapscore.pipeline.concurrency.ConcurrentSequentialProcessor}
- * is defined by the implementation of {@link com.snapscore.pipeline.concurrency.InputProcessingRunner} and we can create chained async operations
- * in both {@link com.snapscore.pipeline.concurrency.InputProcessingFluxRunner} and {@link com.snapscore.pipeline.concurrency.InputProcessingCallableRunner}
+ * is defined by the implementation of {@link com.snapscore.pipeline.concurrency.InputProcessingRunner}.
+ * We can create chained async operations in both {@link com.snapscore.pipeline.concurrency.InputProcessingFluxRunner}
+ * and {@link com.snapscore.pipeline.concurrency.InputProcessingCallableRunner}
  */
 package com.snapscore.pipeline.concurrency;
