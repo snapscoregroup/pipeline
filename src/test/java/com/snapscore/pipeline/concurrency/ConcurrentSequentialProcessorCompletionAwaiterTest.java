@@ -14,18 +14,18 @@ import java.util.function.Function;
 import static com.snapscore.pipeline.concurrency.TestSupport.*;
 import static org.junit.Assert.*;
 
-public class SequentialFluxProcessorCompletionAwaiterTest {
+public class ConcurrentSequentialProcessorCompletionAwaiterTest {
 
     public static final int HEAVY_PROCESSING_MILLIS = 0;
 
     @Test
     public void emptyProcessorAreCompetedWithoutTimeout() {
 
-        SequentialFluxProcessor sequentialFluxProcessor1 = new SequentialFluxProcessorImpl("test-sequential-processor-1");
-        SequentialFluxProcessor sequentialFluxProcessor2 = new SequentialFluxProcessorImpl("test-sequential-processor-2");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor1 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-1");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor2 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-2");
 
         try {
-            SequentialFluxProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(sequentialFluxProcessor1, sequentialFluxProcessor2), Duration.ofMillis(1000));
+            ConcurrentSequentialProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(concurrentSequentialProcessor1, concurrentSequentialProcessor2), Duration.ofMillis(1000));
         } catch (Exception e) {
             fail("awaiting processing completion should not have timed out");
         }
@@ -35,83 +35,83 @@ public class SequentialFluxProcessorCompletionAwaiterTest {
     @Test
     public void independentProcessorsAreCompletedWithinTimeoutLimit() {
 
-        SequentialFluxProcessor sequentialFluxProcessor1 = new SequentialFluxProcessorImpl("test-sequential-processor-1");
-        SequentialFluxProcessor sequentialFluxProcessor2 = new SequentialFluxProcessorImpl("test-sequential-processor-2");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor1 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-1");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor2 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-2");
 
         final List<SequentialInput<TestMessage, TestMessage>> sequentialMessages = createSequentialMessage(10, 100, this::processTestMessageFlux);
-        sequentialMessages.forEach(sequentialFluxProcessor1::processSequentiallyAsync);
-        sequentialMessages.forEach(sequentialFluxProcessor2::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor1::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor2::processSequentiallyAsync);
 
         try {
-            SequentialFluxProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(sequentialFluxProcessor1, sequentialFluxProcessor2), Duration.ofMillis(2000));
+            ConcurrentSequentialProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(concurrentSequentialProcessor1, concurrentSequentialProcessor2), Duration.ofMillis(2000));
         } catch (Exception e) {
             fail("awaiting processing completion should not have timed out");
         }
 
-        assertEquals(0L, sequentialFluxProcessor1.getTotalUnprocessedInputs());
-        assertEquals(0L, sequentialFluxProcessor2.getTotalUnprocessedInputs());
+        assertEquals(0L, concurrentSequentialProcessor1.getTotalUnprocessedInputs());
+        assertEquals(0L, concurrentSequentialProcessor2.getTotalUnprocessedInputs());
     }
 
     @Test(expected = TimeoutException.class)
     public void independentProcessorsAreTimedOut() throws Exception {
 
-        SequentialFluxProcessor sequentialFluxProcessor1 = new SequentialFluxProcessorImpl("test-sequential-processor-1");
-        SequentialFluxProcessor sequentialFluxProcessor2 = new SequentialFluxProcessorImpl("test-sequential-processor-2");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor1 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-1");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor2 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-2");
 
         final List<SequentialInput<TestMessage, TestMessage>> sequentialMessages = createSequentialMessage(10, 100, this::processTestMessageFlux);
-        sequentialMessages.forEach(sequentialFluxProcessor1::processSequentiallyAsync);
-        sequentialMessages.forEach(sequentialFluxProcessor2::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor1::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor2::processSequentiallyAsync);
 
-        SequentialFluxProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(sequentialFluxProcessor1, sequentialFluxProcessor2), Duration.ofMillis(10));
+        ConcurrentSequentialProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(concurrentSequentialProcessor1, concurrentSequentialProcessor2), Duration.ofMillis(10));
     }
 
 
     @Test
     public void interdependentProcessorsAreCompletedWithinTimeoutLimit() {
 
-        SequentialFluxProcessor sequentialFluxProcessor1 = new SequentialFluxProcessorImpl("test-sequential-processor-1");
-        SequentialFluxProcessor sequentialFluxProcessor2 = new SequentialFluxProcessorImpl("test-sequential-processor-2");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor1 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-1");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor2 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-2");
 
         final Function<TestMessage, Flux<TestMessage>> processingForProcessor1 = testMessage1 -> {
             return Flux.just(testMessage1)
                     .doOnNext(testMessage -> {
                         // processor one will forward all processing to processor 2
-                        sequentialFluxProcessor2.processSequentiallyAsync(createSequentialInput(this::processTestMessageFlux, testMessage.entityId, testMessage));
+                        concurrentSequentialProcessor2.processSequentiallyAsync(createSequentialInput(this::processTestMessageFlux, testMessage.entityId, testMessage));
                     });
         };
 
         final List<SequentialInput<TestMessage, TestMessage>> sequentialMessages = createSequentialMessage(10, 100, processingForProcessor1);
-        sequentialMessages.forEach(sequentialFluxProcessor1::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor1::processSequentiallyAsync);
 
         try {
-            SequentialFluxProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(sequentialFluxProcessor1, sequentialFluxProcessor2), Duration.ofMillis(2000));
+            ConcurrentSequentialProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(concurrentSequentialProcessor1, concurrentSequentialProcessor2), Duration.ofMillis(2000));
         } catch (Exception e) {
             fail("awaiting processing completion should not have timed out");
         }
 
-        assertEquals(0L, sequentialFluxProcessor1.getTotalUnprocessedInputs());
-        assertEquals(0L, sequentialFluxProcessor2.getTotalUnprocessedInputs());
+        assertEquals(0L, concurrentSequentialProcessor1.getTotalUnprocessedInputs());
+        assertEquals(0L, concurrentSequentialProcessor2.getTotalUnprocessedInputs());
     }
 
 
     @Test(expected = TimeoutException.class)
     public void interdependentProcessorsAreTimedOut() throws Exception {
 
-        SequentialFluxProcessor sequentialFluxProcessor1 = new SequentialFluxProcessorImpl("test-sequential-processor-1");
-        SequentialFluxProcessor sequentialFluxProcessor2 = new SequentialFluxProcessorImpl("test-sequential-processor-2");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor1 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-1");
+        ConcurrentSequentialProcessor concurrentSequentialProcessor2 = new ConcurrentSequentialProcessorImpl("test-sequential-processor-2");
 
         final Function<TestMessage, Flux<TestMessage>> processingForProcessor1 = testMessage1 -> {
             return Flux.just(testMessage1)
                     .doOnNext(testMessage -> {
                         // processor one will forward all processing to processor 2 ... making the processing dependent
-                        sequentialFluxProcessor2.processSequentiallyAsync(createSequentialInput(this::processTestMessageFlux, testMessage.entityId, testMessage));
+                        concurrentSequentialProcessor2.processSequentiallyAsync(createSequentialInput(this::processTestMessageFlux, testMessage.entityId, testMessage));
                     });
         };
 
         final List<SequentialInput<TestMessage, TestMessage>> sequentialMessages = createSequentialMessage(10, 100, processingForProcessor1);
-        sequentialMessages.forEach(sequentialFluxProcessor1::processSequentiallyAsync);
+        sequentialMessages.forEach(concurrentSequentialProcessor1::processSequentiallyAsync);
 
-        SequentialFluxProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(sequentialFluxProcessor1, sequentialFluxProcessor2), Duration.ofMillis(10));
+        ConcurrentSequentialProcessorCompletionAwaiter.awaitProcessingCompletionOf(Set.of(concurrentSequentialProcessor1, concurrentSequentialProcessor2), Duration.ofMillis(10));
 
         Thread.sleep(100);
     }
@@ -151,8 +151,8 @@ public class SequentialFluxProcessorCompletionAwaiterTest {
 
         SequentialInput<TestMessage, TestMessage> sequentialInput = new SequentialInput<>(
                 testMessage,
-                new TestQueueResolver(),
-                new SequentialFluxSubscriber<>(
+                new TestInputQueueResolver(),
+                new InputProcessingFluxRunner<>(
                         testMessage,
                         processingFluxCreator,
                         m -> {

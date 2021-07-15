@@ -8,9 +8,9 @@ import reactor.util.annotation.Nullable;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberInterface {
+public class InputProcessingFluxRunner<I, R> extends InputProcessingRunner<I, R> {
 
-    private final static Logger logger = Logger.setup(SequentialFluxSubscriber.class);
+    private final static Logger logger = Logger.setup(InputProcessingFluxRunner.class);
 
     private final I input;
     private final Function<I, Flux<R>> processingFluxCreator;
@@ -19,12 +19,12 @@ public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberI
     private final Scheduler subscribeOnScheduler;
     private final LoggingInfo loggingInfo;
 
-    public SequentialFluxSubscriber(I input,
-                                    Function<I, Flux<R>> processingFluxCreator,
-                                    @Nullable Consumer<? super R> subscribeConsumer,
-                                    Consumer<? super Throwable> subscribeErrorConsumer,
-                                    LoggingInfo loggingInfo,
-                                    Scheduler subscribeOnScheduler) {
+    public InputProcessingFluxRunner(I input,
+                                     Function<I, Flux<R>> processingFluxCreator,
+                                     Consumer<? super R> subscribeConsumer,
+                                     Consumer<? super Throwable> subscribeErrorConsumer,
+                                     LoggingInfo loggingInfo,
+                                     Scheduler subscribeOnScheduler) {
         this.input = input;
         this.processingFluxCreator = processingFluxCreator;
         this.subscribeConsumer = subscribeConsumer;
@@ -34,7 +34,7 @@ public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberI
     }
 
     @Override
-    public void subscribe(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
+    protected void run(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
         Consumer<? super R> subscribeConsumerWrapped = getSubscribeConsumerWrapped(itemEnqueuedTs);
         processingFluxCreator.apply(input)
                 .doOnTerminate(onTerminateHook)
@@ -44,7 +44,7 @@ public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberI
     }
 
     private Consumer<? super R> getSubscribeConsumerWrapped(long itemEnqueuedTs) {
-        Consumer<? super R> subscribeConsumerWrapper = result -> {
+        return result -> {
             subscribeConsumer.accept(result);
             final long end = System.currentTimeMillis();
             final long processingTimeMillis = end - itemEnqueuedTs;
@@ -52,7 +52,6 @@ public class SequentialFluxSubscriber<I, R> implements SequentialFluxSubscriberI
                 loggingInfo.decorate(logger).decorateSetup(props -> props.analyticsId("input_processing_time").exec(Long.toString(processingTimeMillis))).info("Input took {} ms to process: {}", processingTimeMillis, loggingInfo.inputDescription);
             }
         };
-        return subscribeConsumerWrapper;
     }
 
 

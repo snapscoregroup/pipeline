@@ -2,7 +2,7 @@ package com.snapscore.pipeline.concurrency;
 
 import java.time.Duration;
 
-public interface SequentialFluxProcessor {
+public interface ConcurrentSequentialProcessor {
 
     <I, R> void processSequentiallyAsync(SequentialInput<I, R> sequentialInput);
 

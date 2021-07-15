@@ -1,10 +1,10 @@
 package com.snapscore.pipeline.concurrency;
 
-public abstract class QueueResolver<I> {
+public abstract class InputQueueResolver<I> {
 
     /**
      * @param inputQueueCount total count of input queues provided by the queuing component
-     * @see SequentialFluxProcessorImpl
+     * @see ConcurrentSequentialProcessorImpl
      */
     public abstract int getQueueIdxFor(I input, int inputQueueCount);
 

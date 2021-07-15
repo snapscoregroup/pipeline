@@ -10,9 +10,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-public class SequentialFluxSubscriberNonReactive<I, R> implements SequentialFluxSubscriberInterface {
+public class InputProcessingFutureRunner<I, R> extends InputProcessingRunner<I, R> {
 
-    private final static Logger logger = Logger.setup(SequentialFluxSubscriberNonReactive.class);
+    private final static Logger logger = Logger.setup(InputProcessingFutureRunner.class);
 
     /**
      * This scheduler will be used to subscribe the flux create from the specific completableFuture;
@@ -20,26 +20,28 @@ public class SequentialFluxSubscriberNonReactive<I, R> implements SequentialFlux
      */
     private static final Scheduler subscribeOnScheduler = Schedulers.newBoundedElastic(Runtime.getRuntime().availableProcessors(), Integer.MAX_VALUE, "seq-processing-subscription-thread");
 
-    private final SequentialFluxSubscriber<I, R> sequentialFluxSubscriber;
+    private final InputProcessingFluxRunner<I, R> inputProcessingFluxRunner;
 
-    public SequentialFluxSubscriberNonReactive(I input,
-                                               CompletableFuture<R> inputProcessing,
-                                               LoggingInfo loggingInfo) {
+    public InputProcessingFutureRunner(I input,
+                                       CompletableFuture<R> inputProcessing,
+                                       LoggingInfo loggingInfo) {
         final Function<I, Flux<R>> processingFluxCreator = i -> {
             return Mono.fromFuture(inputProcessing).flux();
         };
 
-        final Consumer<? super R> subscribeConsumer = result -> {if (loggingInfo.logActivity) {
-            loggingInfo.decorate(logger).info("Got operation result ...");
-        }};
-
-        final Consumer<? super Throwable> subscribeErrorConsumer = error -> {
+        final Consumer<? super R> subscribeConsumer = result -> {
             if (loggingInfo.logActivity) {
-                loggingInfo.decorate(logger).info("Got operation error ...");
+                loggingInfo.decorate(logger).info("Finished processing input {}", loggingInfo.inputDescription);
             }
         };
 
-        this.sequentialFluxSubscriber = new SequentialFluxSubscriber<>(
+        final Consumer<? super Throwable> subscribeErrorConsumer = error -> {
+            if (loggingInfo.logActivity) {
+                loggingInfo.decorate(logger).error("Error processing input {}", loggingInfo.inputDescription, error);
+            }
+        };
+
+        this.inputProcessingFluxRunner = new InputProcessingFluxRunner<>(
                 input,
                 processingFluxCreator,
                 subscribeConsumer,
@@ -50,8 +52,8 @@ public class SequentialFluxSubscriberNonReactive<I, R> implements SequentialFlux
     }
 
     @Override
-    public void subscribe(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
-        sequentialFluxSubscriber.subscribe(onTerminateHook, onCancelHook, itemEnqueuedTs);
+    protected void run(Runnable onTerminateHook, Runnable onCancelHook, long itemEnqueuedTs) {
+        inputProcessingFluxRunner.run(onTerminateHook, onCancelHook, itemEnqueuedTs);
     }
 
 }

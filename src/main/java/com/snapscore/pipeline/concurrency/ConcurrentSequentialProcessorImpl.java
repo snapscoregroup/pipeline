@@ -10,9 +10,9 @@ import java.util.concurrent.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 
-public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
+public class ConcurrentSequentialProcessorImpl implements ConcurrentSequentialProcessor {
 
-    private static final Logger logger = Logger.setup(SequentialFluxProcessorImpl.class);
+    private static final Logger logger = Logger.setup(ConcurrentSequentialProcessorImpl.class);
 
     private static final int INPUT_QUEUES_COUNT_DEFAULT = 10000;
     public static final String UNPROCESSED_TOTAL_LOG_ANALYTICS_ID = "unprocessed_total";
@@ -32,7 +32,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
      * @param inputQueueCount should be a big enough number for the passed messages to get spread out evenly
      * @param name if multiple instances are created
      */
-    public SequentialFluxProcessorImpl(int inputQueueCount, String name) {
+    public ConcurrentSequentialProcessorImpl(int inputQueueCount, String name) {
         this.name = name;
         this.inputQueueCount = inputQueueCount;
         for (int queueIdx = 0; queueIdx < this.inputQueueCount; queueIdx++) {
@@ -40,14 +40,14 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
         }
     }
 
-    public SequentialFluxProcessorImpl(String name) {
+    public ConcurrentSequentialProcessorImpl(String name) {
         this(INPUT_QUEUES_COUNT_DEFAULT, name);
     }
 
     @Override
     public <I, R> void processSequentiallyAsync(SequentialInput<I, R> sequentialInput) {
-        int queueIdx = sequentialInput.queueResolver.getQueueIdxFor(sequentialInput.input, inputQueueCount);
-        EnqueuedInput enqueuedInput = new EnqueuedInput(queueIdx, sequentialInput.sequentialFluxSubscriber, sequentialInput.loggingInfo);
+        int queueIdx = sequentialInput.inputQueueResolver.getQueueIdxFor(sequentialInput.input, inputQueueCount);
+        EnqueuedInput enqueuedInput = new EnqueuedInput(queueIdx, sequentialInput.inputProcessingRunner, sequentialInput.loggingInfo);
         enqueueAndProcess(enqueuedInput);
     }
 
@@ -100,7 +100,7 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
             loggerDecorated.info("{}: Going to process next input: {}", this.name, enqueuedInput.loggingInfo.inputDescription);
         }
         logIfWaitingForTooLong(enqueuedInput);
-        enqueuedInput.sequentialFluxSubscriber.subscribe( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
+        enqueuedInput.inputProcessingRunner.run( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
                 enqueuedInput.enqueuedTs
@@ -149,15 +149,15 @@ public class SequentialFluxProcessorImpl implements SequentialFluxProcessor {
     private static class EnqueuedInput {
 
         private final int queueIdx;
-        private final SequentialFluxSubscriber<?, ?> sequentialFluxSubscriber;
+        private final InputProcessingRunner<?, ?> inputProcessingRunner;
         private final LoggingInfo loggingInfo;
         private final long enqueuedTs;
 
         public EnqueuedInput(int queueIdx,
-                             SequentialFluxSubscriber<?, ?> sequentialFluxSubscriber,
+                             InputProcessingRunner<?, ?> inputProcessingRunner,
                              LoggingInfo loggingInfo) {
             this.queueIdx = queueIdx;
-            this.sequentialFluxSubscriber = sequentialFluxSubscriber;
+            this.inputProcessingRunner = inputProcessingRunner;
             this.loggingInfo = loggingInfo;
             this.enqueuedTs = System.currentTimeMillis();
         }

@@ -16,7 +16,7 @@ import java.util.stream.IntStream;
 
 import static com.snapscore.pipeline.concurrency.TestSupport.*;
 
-public class SequentialFluxProcessorTest extends TestCase {
+public class ConcurrentSequentialProcessorTest extends TestCase {
 
     public static final int HEAVY_PROCESSING_MILLIS = 0;
 
@@ -24,7 +24,7 @@ public class SequentialFluxProcessorTest extends TestCase {
     public void testThatMessagesOfSingleEntityAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl("test-flux-processor");
+        final ConcurrentSequentialProcessor sequentialProcessor = new ConcurrentSequentialProcessorImpl("test-flux-processor");
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 1;
         int messageCount = 10000;
@@ -48,7 +48,7 @@ public class SequentialFluxProcessorTest extends TestCase {
     public void testThatMessagesOfMultipleEntitiesAreProcessedSequentiallyAndInCorrectOrder() throws Exception {
 
         // given
-        final SequentialFluxProcessor sequentialProcessor = new SequentialFluxProcessorImpl("test-flux-processor");
+        final ConcurrentSequentialProcessor sequentialProcessor = new ConcurrentSequentialProcessorImpl("test-flux-processor");
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
         final int entityCount = 10;
         int messageCount = 1000;
@@ -94,8 +94,8 @@ public class SequentialFluxProcessorTest extends TestCase {
                 LoggingInfo loggingInfo = new LoggingInfo(true, "entity id " + entityId);
                 SequentialInput<TestMessage, TestMessage> sequentialInput = new SequentialInput<>(
                         testMessage,
-                        new TestQueueResolver(),
-                        new SequentialFluxSubscriber<>(
+                        new TestInputQueueResolver(),
+                        new InputProcessingFluxRunner<>(
                                 testMessage,
                                 processingFluxCreator,
                                 m ->  assertion.accept(m),

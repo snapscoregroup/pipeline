@@ -12,7 +12,7 @@ class TestSupport {
         }
     }
 
-    static class TestQueueResolver extends QueueResolver<TestMessage> {
+    static class TestInputQueueResolver extends InputQueueResolver<TestMessage> {
         @Override
         public int getQueueIdxFor(TestMessage input, int inputQueueCount) {
             return calcIdx(inputQueueCount, input.entityId);
