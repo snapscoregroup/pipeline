@@ -1,9 +1,12 @@
-package com.snapscore.pipeline.utils.reactive.sequentialisation;
+package com.snapscore.pipeline.concurrency;
 
 import com.snapscore.pipeline.logging.Logger;
 
 import java.util.function.Function;
 
+/**
+ * Logging information that will be used by the internals of the data processing execution
+ */
 public class LoggingInfo {
 
     public final boolean logActivity;
