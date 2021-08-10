@@ -11,6 +11,7 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import static net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils.trim;
 
@@ -67,9 +68,13 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     @Override
     public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> filter) {
-        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter), "Error finding matching items for searchText '{}' in {}!", searchText, cacheName);
+        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter, null), "Error finding matching items for searchText '{}' in {}!", searchText, cacheName);
     }
 
+    @Override
+    public List<T> findMatchingItems(String searchText, int maxReturnedItemsLimit, Predicate<FullTextSearchableItem> filter, Comparator<T> resultSorting) {
+        return LockingWrapper.lockAndGetList(readLock, () -> queryHelper.findMatchingItems(searchText, maxReturnedItemsLimit, filter, resultSorting), "Error finding matching items for searchText '{}' in {}!", searchText, cacheName);
+    }
 
     private class UpdateHelper {
 
@@ -171,25 +176,28 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     private class QueryHelper {
 
-        public List<T> findMatchingItems(String searchText, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
+        public List<T> findMatchingItems(String searchText, int returnedItemsLimit,
+                                         Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             if (!isValid(searchText)) {
                 return Collections.emptyList();
             } else {
                 String searchTextSanitized = stringHelper.sanitizeAndUpper(searchText);
-                return search(searchText, searchTextSanitized, returnedItemsLimit, predicate);
+                return search(searchText, searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
             }
         }
 
-        private List<T> search(String searchText, String searchTextSanitized, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
+        private List<T> search(String searchText, String searchTextSanitized, int returnedItemsLimit,
+                               Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             boolean hasMultipleWords = stringHelper.containsSpaces(searchTextSanitized);
             if (hasMultipleWords) {
-                return searchByMultipleWordInput(searchTextSanitized, returnedItemsLimit, predicate);
+                return searchByMultipleWordInput(searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
             } else {
-                return doSearchBySingleWordInput(searchText, searchTextSanitized, returnedItemsLimit, predicate);
+                return doSearchBySingleWordInput(searchText, searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
             }
         }
 
-        private List<T> searchByMultipleWordInput(String searchTextSanitized, int returnedItemsLimit, Predicate<FullTextSearchableItem> predicate) {
+        private List<T> searchByMultipleWordInput(String searchTextSanitized, int returnedItemsLimit,
+                                                  Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             List<String> searchTextWords = stringHelper.splitToMutableList(searchTextSanitized);
             if (!isValid(searchTextWords)) {
                 return Collections.emptyList();
@@ -197,7 +205,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 SmallestMatch<T> smallestMatch = findSmallestMatch(searchTextWords);
                 if (smallestMatch.smallestMatchingMap != null) {
                     return getResultForMultiWordSearch(returnedItemsLimit, searchTextWords,
-                            smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap, predicate);
+                            smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap, predicate, resultSorting);
                 } else {
                     log.debug("{} No items found!", cacheName);
                     return Collections.emptyList();
@@ -240,39 +248,49 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         private List<T> getResultForMultiWordSearch(int returnedItemsLimit,
                                                     List<String> searchTextWords,
                                                     String smallestMatchingMapWord,
-                                                    SortedMap<String, ConcurrentMap<String,
-                                                            ItemWrapper<T>>> smallestMatchingMap,
-                                                    Predicate<FullTextSearchableItem> predicate
-        ) {
+                                                    SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap,
+                                                    Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             searchTextWords.remove(smallestMatchingMapWord); // this one is already matched as it provided the prefixMap > remove from list
             searchTextWords.sort(STRING_COMPARATOR); // IMPORTANT to be sorted for the rest of the search algorithm to work correctly and to perform best
-            return smallestMatchingMap.values().stream()
+
+            Stream<T> stream = smallestMatchingMap.values().stream()
                     .flatMap(stagesMap -> stagesMap.values().stream())
                     .distinct()
                     .filter(itemWrapper -> predicate.test(itemWrapper.item))
                     .filter(itemWrapper -> itemWrapper.matchesAll(searchTextWords))
-                    .limit(returnedItemsLimit)
-                    .map(ItemWrapper::getItem)
+                    .map(ItemWrapper::getItem);
+
+            if (resultSorting != null) {
+                stream = stream.sorted(resultSorting);
+            }
+
+            return stream.limit(returnedItemsLimit)
                     .collect(Collectors.toList());
         }
 
         private List<T> doSearchBySingleWordInput(String searchText, String searchTextSanitized, int maxReturnedItemsLimit,
-                                                  Predicate<FullTextSearchableItem> predicate) {
+                                                  Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap = trieMaps.prefixMap(searchTextSanitized);
-            return getResultForSingleWordSearch(searchText, maxReturnedItemsLimit, prefixMap, predicate);
+            return getResultForSingleWordSearch(searchText, maxReturnedItemsLimit, prefixMap, predicate, resultSorting);
         }
 
         private List<T> getResultForSingleWordSearch(String searchText,
-                                                     int maxReturnedItemsLimit,
+                                                     int returnedItemsLimit,
                                                      SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap,
-                                                     Predicate<FullTextSearchableItem> predicate) {
+                                                     Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             logPrefixMapInfo(searchText, prefixMap);
-            return prefixMap.values().stream()
+
+            Stream<T> stream = prefixMap.values().stream()
                     .flatMap(stagesMap -> stagesMap.values().stream())
                     .distinct()
                     .filter(itemWrapper -> predicate.test(itemWrapper.item))
-                    .limit(maxReturnedItemsLimit)
-                    .map(ItemWrapper::getItem)
+                    .map(ItemWrapper::getItem);
+
+            if (resultSorting != null) {
+                stream = stream.sorted(resultSorting);
+            }
+
+            return stream.limit(returnedItemsLimit)
                     .collect(Collectors.toList());
         }
 
