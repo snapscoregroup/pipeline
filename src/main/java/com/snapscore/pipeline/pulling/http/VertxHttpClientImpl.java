@@ -19,14 +19,14 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class VertxHttpClientImpl implements HttpClient {
 
-    private static final Logger logger = Logger.setup(VertxHttpClientImpl.class);
+    private final Logger logger = Logger.setup(VertxHttpClientImpl.class);
 
-    private static final Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(2));
+    private final Vertx vertx = Vertx.vertx(new VertxOptions().setWorkerPoolSize(2));
 
     private final HttpClientConfig httpClientConfig;
     private final ClientCallbackFactory<VertxClientCallback> clientCallbackFactory;
 
-    private final static Map<FeedPriorityEnum, io.vertx.core.http.HttpClient> clients = new ConcurrentHashMap<>();
+    private final Map<FeedPriorityEnum, io.vertx.core.http.HttpClient> clients = new ConcurrentHashMap<>();
 
     public VertxHttpClientImpl(HttpClientConfig httpClientConfig,
                                HttpClientOptions httpClientOptions,
