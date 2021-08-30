@@ -65,7 +65,11 @@ public class VertxClientCallbackImpl extends AbstractClientCallback implements V
             } else {
                 handleUnsuccessfulResponse(response.statusCode());
             }
-            headersObservers.forEach(ho -> ho.observeHeaders(feedRequest.getFeedName(), response.headers()));
+            try {
+                headersObservers.forEach(ho -> ho.observeHeaders(feedRequest.getFeedName(), response.headers()));
+            } catch (Exception e) {
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).warn("Error while observing the response headers", e);
+            }
         } catch (Exception e){
             logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("Error while processing response for: {}", feedRequest.toStringBasicInfo(), e);
             emitFailedRequestException();
