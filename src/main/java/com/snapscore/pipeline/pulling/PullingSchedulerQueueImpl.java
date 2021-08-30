@@ -110,7 +110,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
         Optional<TrackedRequest> trackedRequest = waitingRequestsTracker.getTrackedRequest(feedRequest);
         if (trackedRequest.isPresent()) {
             Duration trackedDuration = trackedRequest.get().trackedDuration();
-            if (trackedDuration.getSeconds() > 10 * 60_000) { // 10 mins
+            if (trackedDuration.getSeconds() > 10 * 60) { // 10 mins
                 logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("request_tracked_too_long")).warn(">>> !!! Request is tracked for too long! It is possible that some pulling results are not getting emitted by the http client callback implementation and it is causing requests being incorrectly ignored !!! <<< {}", feedRequest);
                 return true;
             }

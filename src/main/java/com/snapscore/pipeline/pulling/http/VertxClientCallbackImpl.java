@@ -46,6 +46,10 @@ public class VertxClientCallbackImpl extends AbstractClientCallback implements V
                     }
                     pullingStatisticsService.ifPresent(service -> service.recordSuccessfulPullFor(feedRequest.getFeedName()));
                 });
+                response.exceptionHandler(throwable -> {
+                    logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("Error while readig successful response for {}!", feedRequest.toStringBasicInfo(), throwable);
+                    emitFailedRequestException();
+                });
             } else {
                 handleUnsuccessfulResponse(response.statusCode());
             }
