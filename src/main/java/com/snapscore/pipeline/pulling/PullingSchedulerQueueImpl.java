@@ -93,7 +93,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
      */
     private synchronized void enqueueRequest(FeedRequest feedRequest, Consumer<PullResult> pullResultConsumer, Consumer<PullError> pullErrorConsumer) {
         if (shouldMakeRequest(feedRequest)) {
-            requestsQueue.add(new QueueFeedRequest(feedRequest, pullResultConsumer, pullErrorConsumer));
+            requestsQueue.add(new QueueFeedRequest(feedRequest, pullResultConsumer, pullErrorConsumer, System.currentTimeMillis()));
             waitingRequestsTracker.trackAwaitingResponse(feedRequest);
             logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).info("New enqueued request info: {}", feedRequest.toStringBasicInfo());
             logEnqueuedRequestCount();
@@ -110,8 +110,8 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
         Optional<TrackedRequest> trackedRequest = waitingRequestsTracker.getTrackedRequest(feedRequest);
         if (trackedRequest.isPresent()) {
             Duration trackedDuration = trackedRequest.get().trackedDuration();
-            if (trackedDuration.getSeconds() > 10 * 60_000) { // 10 mins
-                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("request_tracked_too_long")).warn(">>> !!! Request is tracked for too long! It is possible that some pulling results are not getting emitted by the http client callback implementation and it is causing requests being incorrectly ignored !!! <<< {}", feedRequest);
+            if (trackedDuration.getSeconds() > 60 * 60_000) { // 60 mins
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid()).analyticsId("request_tracked_too_long")).warn(">>> !!! Request is tracked for too long! It is possible that some pulling results are not getting emitted by the http client callback implementation and it is causing requests being incorrectly ignored. It can also mean that too many low priority requests are stuck in the queue for too long because they do not get a chance to be processed due to higher priority requests. <<< {}", feedRequest);
                 return true;
             }
         }
@@ -129,7 +129,9 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                 requestsQueue.poll(); // remove from head
                 scheduleSinglePull(nextQueueRequest.getFeedRequest(),
                         nextQueueRequest.getPullResultConsumer(),
-                        nextQueueRequest.getPullErrorConsumer());
+                        nextQueueRequest.getPullErrorConsumer(),
+                        nextQueueRequest.getEnqueuedTimestamp()
+                );
                 nextQueueRequest = requestsQueue.peek();
             }
         } catch (Exception e) {
@@ -139,7 +141,8 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
 
     private void scheduleSinglePull(FeedRequest request,
                                     Consumer<PullResult> pullResultConsumer,
-                                    Consumer<PullError> pullErrorConsumer) {
+                                    Consumer<PullError> pullErrorConsumer,
+                                    long enqueuedTimestamp) {
 
         AtomicBoolean isRetry = new AtomicBoolean(false);
 
@@ -163,6 +166,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                 .doOnNext(data -> {
                     waitingRequestsTracker.untrackProcessed(request);
                     logEnqueuedRequestCount();
+                    logRequestProcessed(request, enqueuedTimestamp);
                 })
                 .map(rawData -> new PullResult(request, rawData))
                 .subscribe(pullResultConsumer);
@@ -217,6 +221,11 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
 
     private void logEnqueuedRequestCount() {
         logger.info("Currently enqueued rqs count = {}", waitingRequestsTracker.countOfRequestsAwaitingResponse());
+    }
+
+    private void logRequestProcessed(FeedRequest request, long enqueuedTimestamp) {
+        final double processingTime = (System.currentTimeMillis() - enqueuedTimestamp) / 1000.0;
+        logger.info("Request took {}s to process: {}", String.format("%.2f", processingTime), request);
     }
 
     private void logDroppingRetrying(FeedRequest request, Throwable error) {

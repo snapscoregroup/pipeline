@@ -1,5 +1,6 @@
 package com.snapscore.pipeline.pulling;
 
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
 import java.util.function.Consumer;
@@ -9,13 +10,16 @@ public class QueueFeedRequest {
     private final FeedRequest feedRequest;
     private final Consumer<PullResult> pullResultConsumer;
     private final Consumer<PullError> pullErrorConsumer;
+    private final long enqueuedTimestamp;
 
     public QueueFeedRequest(FeedRequest feedRequest,
                             Consumer<PullResult> pullResultConsumer,
-                            Consumer<PullError> pullErrorConsumer) {
+                            Consumer<PullError> pullErrorConsumer,
+                            long enqueuedTimestamp) {
         this.feedRequest = feedRequest;
         this.pullResultConsumer = pullResultConsumer;
         this.pullErrorConsumer = pullErrorConsumer;
+        this.enqueuedTimestamp = enqueuedTimestamp;
     }
 
     public FeedRequest getFeedRequest() {
@@ -28,6 +32,10 @@ public class QueueFeedRequest {
 
     public Consumer<PullError> getPullErrorConsumer() {
         return pullErrorConsumer;
+    }
+
+    public long getEnqueuedTimestamp() {
+        return enqueuedTimestamp;
     }
 
     public int getSchedulingOrder() {
