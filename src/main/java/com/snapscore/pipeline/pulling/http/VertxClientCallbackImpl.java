@@ -5,18 +5,30 @@ import com.snapscore.pipeline.pulling.FeedRequest;
 import io.vertx.core.http.HttpClientResponse;
 import reactor.core.publisher.MonoSink;
 
+import java.util.List;
+
 public class VertxClientCallbackImpl extends AbstractClientCallback implements VertxClientCallback {
 
     private static final Logger logger = Logger.setup(VertxClientCallbackImpl.class);
 
     private final int httpResponseBufferSize;
+    private final List<HeadersObserver> headersObservers;
 
     VertxClientCallbackImpl(PullingStatisticsService pullingStatisticsService,
                             FeedRequest feedRequest,
                             MonoSink<byte[]> emitter,
-                            int httpResponseBufferSize) {
+                            int httpResponseBufferSize,
+                            List<HeadersObserver> headersObservers) {
         super(feedRequest, emitter, pullingStatisticsService);
         this.httpResponseBufferSize = httpResponseBufferSize;
+        this.headersObservers = headersObservers == null ? List.of() : headersObservers;
+    }
+
+    VertxClientCallbackImpl(PullingStatisticsService pullingStatisticsService,
+                           FeedRequest feedRequest,
+                           MonoSink<byte[]> emitter,
+                           int httpResponseBufferSize) {
+        this(pullingStatisticsService, feedRequest, emitter, httpResponseBufferSize, List.of());
     }
 
     VertxClientCallbackImpl(FeedRequest feedRequest,
@@ -46,8 +58,17 @@ public class VertxClientCallbackImpl extends AbstractClientCallback implements V
                     }
                     pullingStatisticsService.ifPresent(service -> service.recordSuccessfulPullFor(feedRequest.getFeedName()));
                 });
+                response.exceptionHandler(throwable -> {
+                    logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("Error while reading successful response for {}!", feedRequest.toStringBasicInfo(), throwable);
+                    emitFailedRequestException();
+                });
             } else {
                 handleUnsuccessfulResponse(response.statusCode());
+            }
+            try {
+                headersObservers.forEach(ho -> ho.observeHeaders(feedRequest.getFeedName(), response.headers()));
+            } catch (Exception e) {
+                logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).warn("Error while observing the response headers", e);
             }
         } catch (Exception e){
             logger.decorateSetup(mdc -> mdc.anyId(feedRequest.getUuid())).error("Error while processing response for: {}", feedRequest.toStringBasicInfo(), e);
