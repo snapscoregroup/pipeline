@@ -10,6 +10,14 @@ class TestSupport {
             this.entityId = entityId;
             this.messageNo = messageNo;
         }
+
+        @Override
+        public String toString() {
+            return "TestMessage{" +
+                    "entityId=" + entityId +
+                    ", messageNo=" + messageNo +
+                    '}';
+        }
     }
 
     static class TestInputQueueResolver extends InputQueueResolver<TestMessage> {
