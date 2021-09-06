@@ -1,6 +1,5 @@
 package com.snapscore.pipeline.pulling;
 
-import org.junit.Ignore;
 import org.junit.Test;
 
 import java.util.Collections;
@@ -35,7 +34,7 @@ public class QueueFeedRequestTest {
 
     private QueueFeedRequest createRequest(FeedPriorityEnum priority) {
         FeedRequest feedRequest = new FeedRequest(null, "some_url", priority, 1, null, null, Collections.emptyList());
-        return new QueueFeedRequest(feedRequest, null, null);
+        return new QueueFeedRequest(feedRequest, null, null, System.currentTimeMillis());
     }
 
 

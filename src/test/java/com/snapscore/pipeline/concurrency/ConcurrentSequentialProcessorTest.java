@@ -72,8 +72,8 @@ public class ConcurrentSequentialProcessorTest {
         // given
         final ConcurrentSequentialProcessor sequentialProcessor = new ConcurrentSequentialProcessorImpl("test-sequentialProcessor");
         final Map<Integer, TestMessage> prevProcessedTestMessageMap = new ConcurrentHashMap<>();
-        final int entityCount = 10;
-        final int messageCount = 3;
+        final int entityCount = 2 * Runtime.getRuntime().availableProcessors();
+        final int messageCount = 30;
         final AtomicBoolean correctOrder = new AtomicBoolean(true);
 
         final Consumer<TestMessage> assertion = m -> {
@@ -90,20 +90,18 @@ public class ConcurrentSequentialProcessorTest {
         // when
         sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
 
-        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(2000));
+        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(20000));
 
         // then
         assertTrue("Error in processed message order!", correctOrder.get());
     }
 
     private Flux<TestMessage> processTestMessageFlux(TestMessage testMessage1) {
-        Flux<TestMessage> testMessageProcessingFlux = Flux.just(testMessage1)
-                .publishOn(Schedulers.parallel())
-                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
-                .publishOn(Schedulers.single())
-                .doOnNext(testMessage2 -> doSomeHeavyProcessing(testMessage2))
-                .publishOn(Schedulers.single());
-        return testMessageProcessingFlux;
+        return Flux.just(testMessage1)
+                .doOnNext(testMessage0 -> logger.info("Before blockig processing {}", testMessage0))
+                .publishOn(Schedulers.elastic())
+                .doOnNext(this::doBlockingOperation)
+                .publishOn(Schedulers.parallel());
     }
 
     public List<SequentialInput<TestMessage, TestMessage>> createSequentialMessageFromFlux(Map<Integer, TestMessage> prevProcessedTestMessageMap,
@@ -119,14 +117,17 @@ public class ConcurrentSequentialProcessorTest {
         for (int messageNo = 1; messageNo <= messageCount; messageNo++) {
             for (int entityId = 1; entityId <= entityCount; entityId++) {
                 TestMessage testMessage = new TestMessage(entityId, messageNo);
-                LoggingInfo loggingInfo = new LoggingInfo(true, "entity id " + entityId);
+                LoggingInfo loggingInfo = new LoggingInfo(false, "entity id " + entityId);
                 SequentialInput<TestMessage, TestMessage> sequentialInput = new SequentialInput<>(
                         testMessage,
                         new TestInputQueueResolver(),
                         new InputProcessingFluxRunner<>(
                                 testMessage,
                                 processingFluxCreator,
-                                m -> assertion.accept(m),
+                                m -> {
+                                    logger.info(" ---> Finished processing message: {}", m);
+                                    assertion.accept(m);
+                                },
                                 e -> {
                                     throw new RuntimeException(e);
                                 },
@@ -140,10 +141,10 @@ public class ConcurrentSequentialProcessorTest {
         return sequentialInputs;
     }
 
-    private void doSomeHeavyProcessing(TestMessage testMessage) {
+    private void doBlockingOperation(TestMessage testMessage) {
         try {
             Thread.sleep(HEAVY_PROCESSING_MILLIS);
-            logger.info("Heavy processing of {}", testMessage);
+            logger.info("-> Running blocking operation of {}", testMessage);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -219,7 +220,7 @@ public class ConcurrentSequentialProcessorTest {
             // inside the callable there can be a chain of async operations
             return CompletableFuture
                     .supplyAsync(() -> {
-                        doSomeHeavyProcessing(testMessage1);
+                        doBlockingOperation(testMessage1);
                         return testMessage1;
                     }, executorService)
                     .get();
