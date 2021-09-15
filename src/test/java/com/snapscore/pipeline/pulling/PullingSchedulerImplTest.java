@@ -204,6 +204,28 @@ public class PullingSchedulerImplTest {
     }
 
     @Test
+    public void testThatIfFailedRequestGetsRetriedAndDroppedThenScheduledPullingContinues() throws InterruptedException {
+
+        HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
+        waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
+        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now());
+        pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
+
+        final Duration retryDelay = Duration.ZERO;
+        FeedRequestWithInterval feedRequest = FeedRequestWithInterval.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 2, "url_1", Duration.ofMillis(500)).setRetryDelaySupplier(rq -> retryDelay).build();
+        Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
+
+        pullingScheduler.schedulePullingFixedRequest(MATCH_DETAIL_FEED_NAME, feedRequest, pullResultConsumerMock, pullError -> {
+        }, Duration.ZERO);
+
+        Thread.sleep(1400);
+
+        assertEquals(9, httpClientMock.invocationCounter.get());
+        Mockito.verify(pullResultConsumerMock, Mockito.times(0)).accept(Mockito.anyObject());
+    }
+
+    @Test
     public void testThatRequestPerSecondLimitIsRespected() throws InterruptedException {
 
         // given

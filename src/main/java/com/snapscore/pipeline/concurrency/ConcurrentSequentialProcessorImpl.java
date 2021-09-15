@@ -100,7 +100,7 @@ public class ConcurrentSequentialProcessorImpl implements ConcurrentSequentialPr
             loggerDecorated.info("{}: Going to process next input: {}", this.name, enqueuedInput.loggingInfo.inputDescription);
         }
         logIfWaitingForTooLong(enqueuedInput);
-        enqueuedInput.inputProcessingRunner.run( // Subscribing with these hoods is EXTREMELY important to ensure that the next message is taken from the queue and processed
+        enqueuedInput.inputProcessingRunner.run( // Subscribing with these hooks is EXTREMELY important to ensure that the next message is taken from the queue and processed
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
                 () -> dequeueCurrentAndProcessNext(enqueuedInput),
                 enqueuedInput.enqueuedTs
