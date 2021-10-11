@@ -23,7 +23,7 @@ public class FeedRequest {
     final String uuid;
     final String url;
     /**
-     * URL to be used in logs. Use this to filter out sensitive information from the urls, such as passwords
+     * URL to be used in logs. Use this to hide sensitive information from the urls, such as passwords
      * If not set, the url property will be used
      */
     final String urlForLogging;
