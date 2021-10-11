@@ -22,6 +22,11 @@ public class FeedRequest {
     final int numOfRetries;
     final String uuid;
     final String url;
+    /**
+     * URL to be used in logs. Use this to hide sensitive information from the urls, such as passwords
+     * If not set, the url property will be used
+     */
+    final String urlForLogging;
     final LocalDateTime createdDt; // UTC
     final Map<String, FeedRequestHttpHeader> httpHeaders;
     final RetryDelaySupplier retryDelaySupplier;
@@ -34,6 +39,17 @@ public class FeedRequest {
                 FeedRequestProperties properties,
                 RetryDelaySupplier retryDelaySupplier,
                 List<FeedRequestHttpHeader> httpHeaders) {
+        this(feedName, url, url, priority, numOfRetries, properties, retryDelaySupplier, httpHeaders);
+    }
+
+    FeedRequest(FeedName feedName,
+                String url,
+                String urlForLogging,
+                FeedPriorityEnum priority,
+                int numOfRetries,
+                FeedRequestProperties properties,
+                RetryDelaySupplier retryDelaySupplier,
+                List<FeedRequestHttpHeader> httpHeaders) {
 
         this.feedName = feedName;
         this.priority = priority;
@@ -41,6 +57,7 @@ public class FeedRequest {
         String uuidFeedName = feedName != null ? feedName.getName().name() : "";
         this.uuid = UUID.randomUUID().toString().toUpperCase().replaceAll("-", "").substring(0, 10) + "_" + uuidFeedName;
         this.url = url;
+        this.urlForLogging = urlForLogging;
         this.retryDelaySupplier = retryDelaySupplier;
         this.createdDt = DateUtils.nowUTC();
         this.httpHeaders = new ConcurrentHashMap<>();
@@ -133,7 +150,7 @@ public class FeedRequest {
 
     public String toStringBasicInfo() {
         return "[uuid='" + uuid + '\'' +
-                ", url='" + url + '\'' +
+                ", url='" + urlForLogging + '\'' +
                 ']'
                 ;
     }
@@ -145,7 +162,7 @@ public class FeedRequest {
                 ", priority=" + priority +
                 ", numOfRetries=" + numOfRetries +
                 ", uuid='" + uuid + '\'' +
-                ", url='" + url + '\'' +
+                ", url='" + urlForLogging + '\'' +
                 ", createdDt=" + createdDt +
                 ", httpHeaders=" + httpHeaders +
                 ", retryDelaySupplier=" + retryDelaySupplier +
@@ -159,6 +176,7 @@ public class FeedRequest {
         private FeedPriorityEnum priority;
         private int numOfRetries;
         private String url;
+        private String urlForLogging;
         private FeedRequestProperties properties;
         private RetryDelaySupplier retryDelaySupplier;
         private List<FeedRequestHttpHeader> headers = new ArrayList<>();
@@ -202,6 +220,11 @@ public class FeedRequest {
             return this;
         }
 
+        public FeedRequestBuilder setUrlForLogging(String urlForLogging) {
+            this.urlForLogging = urlForLogging;
+            return this;
+        }
+
         public FeedRequestBuilder putProperty(Enum propertyType, Object value) {
             this.properties.putProperty(propertyType, value);
             return this;
@@ -219,7 +242,8 @@ public class FeedRequest {
         }
 
         public FeedRequest build() {
-            return new FeedRequest(feedName, url, priority, numOfRetries, properties, retryDelaySupplier, headers);
+            final String urlForLogging = this.urlForLogging != null ? this.urlForLogging : url;
+            return new FeedRequest(feedName, url, urlForLogging, priority, numOfRetries, properties, retryDelaySupplier, headers);
         }
     }
 }
