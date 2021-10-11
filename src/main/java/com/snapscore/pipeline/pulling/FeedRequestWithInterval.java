@@ -1,9 +1,6 @@
 package com.snapscore.pipeline.pulling;
 
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,6 +19,19 @@ public class FeedRequestWithInterval extends FeedRequest {
                                    RetryDelaySupplier retryDelaySupplier,
                                    List<FeedRequestHttpHeader> httpHeaders) {
         super(feedName, url, priority, numOfRetries, properties, retryDelaySupplier, httpHeaders);
+        this.pullInterval = pullInterval;
+    }
+
+    public FeedRequestWithInterval(FeedName feedName,
+                                   String url,
+                                   String urlForLogging,
+                                   FeedPriorityEnum priority,
+                                   Duration pullInterval,
+                                   int numOfRetries,
+                                   FeedRequestProperties properties,
+                                   RetryDelaySupplier retryDelaySupplier,
+                                   List<FeedRequestHttpHeader> httpHeaders) {
+        super(feedName, url, urlForLogging, priority, numOfRetries, properties, retryDelaySupplier, httpHeaders);
         this.pullInterval = pullInterval;
     }
 
@@ -62,7 +72,7 @@ public class FeedRequestWithInterval extends FeedRequest {
 
     public String toStringBasicInfo() {
         return "[uuid='" + uuid + '\'' +
-                ", url='" + url + '\'' +
+                ", url='" + urlForLogging + '\'' +
                 ']'
                 ;
     }
@@ -75,7 +85,7 @@ public class FeedRequestWithInterval extends FeedRequest {
                 ", priority=" + priority +
                 ", numOfRetries=" + numOfRetries +
                 ", uuid='" + uuid + '\'' +
-                ", url='" + url + '\'' +
+                ", url='" + urlForLogging + '\'' +
                 ", createdDt=" + createdDt +
                 ", httpHeaders=" + httpHeaders +
                 ", retryDelaySupplier=" + retryDelaySupplier +
@@ -89,6 +99,7 @@ public class FeedRequestWithInterval extends FeedRequest {
         private FeedPriorityEnum priority;
         private int numOfRetries;
         private String url;
+        private String urlForLogging;
         private FeedRequestProperties properties;
         private RetryDelaySupplier retryDelaySupplier;
         private Duration pullInterval;
@@ -123,6 +134,11 @@ public class FeedRequestWithInterval extends FeedRequest {
             return this;
         }
 
+        public FeedRequestWithIntervalBuilder setUrlForLogging(String urlForLogging) {
+            this.urlForLogging = urlForLogging;
+            return this;
+        }
+
         public FeedRequestWithIntervalBuilder putHeader(String key, String value) {
             this.headers.add(new FeedRequestHttpHeader(key, value));
             return this;
@@ -145,7 +161,9 @@ public class FeedRequestWithInterval extends FeedRequest {
         }
 
         public FeedRequestWithInterval build() {
-            return new FeedRequestWithInterval(feedName, url, priority, pullInterval, numOfRetries, properties, retryDelaySupplier, headers);
+            final String urlForLogging = this.urlForLogging != null ? this.urlForLogging : url;
+            return new FeedRequestWithInterval(feedName, url, urlForLogging, priority, pullInterval, numOfRetries,
+                    properties, retryDelaySupplier, headers);
         }
 
     }
