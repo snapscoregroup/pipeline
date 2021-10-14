@@ -7,7 +7,7 @@ pipeline {
     }
 
     environment {
-    		def jdk = tool name: 'openjdk14'
+    		def jdk = tool name: 'openjdk17'
     		JAVA_HOME="${jdk}"
     		GITHUB_CREDENTIALS = credentials('snapscore-ci')
     }
