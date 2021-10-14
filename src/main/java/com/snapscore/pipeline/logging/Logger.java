@@ -19,7 +19,7 @@ public class Logger {
 
 
     // must not be accessible to ensure a unified way of logging using the methods below
-    // also MDCProps is not immutable and we do not want to enable its being shared acrocc multiple JsonLOG instances.
+    // also MDCProps is not immutable and we do not want to enable its being shared across multiple JsonLOG instances.
     private Logger(MDCProps mdcProps) {
         this.mdcProps = mdcProps;
     }
