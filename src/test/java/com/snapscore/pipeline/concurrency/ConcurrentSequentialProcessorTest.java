@@ -60,7 +60,7 @@ public class ConcurrentSequentialProcessorTest {
         // when
         sequentialInputData.forEach(sequentialProcessor::processSequentiallyAsync);
 
-        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(2000));
+        sequentialProcessor.awaitProcessingCompletion(Duration.ofMillis(3000));
 
         // then
         assertTrue("Error in processed message order!", correctOrder.get());

@@ -35,65 +35,108 @@ public class SequentialInput<I, R> {
         this.loggingInfo = loggingInfo;
     }
 
-    public static <I, R> Builder<I, R> newBuilder(I input, InputQueueResolver<I> inputQueueResolver, Function<I, Flux<R>> processingFluxCreator) {
-        return new Builder<>(input, inputQueueResolver, processingFluxCreator);
+    public static <I, R> BuilderForFlux<I, R> newBuilder(I input, InputQueueResolver<I> inputQueueResolver, Function<I, Flux<R>> processingFluxCreator) {
+        return new BuilderForFlux<>(input, inputQueueResolver, processingFluxCreator);
     }
 
-    public static <I, R> Builder<I, R> newBuilder(I input, InputQueueResolver<I> inputQueueResolver, Callable<R> inputProcessing) {
-        return new Builder<>(input, inputQueueResolver, inputProcessing);
+    public static <I, R> BuilderForCallable<I, R> newBuilder(I input, InputQueueResolver<I> inputQueueResolver, Callable<R> inputProcessing) {
+        return new BuilderForCallable<>(input, inputQueueResolver, inputProcessing);
     }
 
 
-    public static class Builder<I, R> {
+    private static class Builder<I, R> {
 
-        private final I input;
-        private final InputQueueResolver<I> inputQueueResolver;
-        private Function<I, Flux<R>> processingFluxCreator;
-        private Callable<R> inputProcessing;
-        private Consumer<? super R> subscribeConsumer;
-        private Consumer<? super Throwable> subscribeErrorConsumer;
-        private final LoggingInfo.Builder loggingInfoBuilder = LoggingInfo.builder();
-        private Scheduler subscribeOnScheduler;
+        protected final I input;
+        protected final InputQueueResolver<I> inputQueueResolver;
+        protected final LoggingInfo.Builder loggingInfoBuilder = LoggingInfo.builder();
 
-        public Builder(I input, InputQueueResolver<I> inputQueueResolver, Function<I, Flux<R>> processingFluxCreator) {
+        private Builder(I input, InputQueueResolver<I> inputQueueResolver) {
             this.input = input;
             this.inputQueueResolver = inputQueueResolver;
-            this.processingFluxCreator = processingFluxCreator;
         }
 
-        public Builder(I input, InputQueueResolver<I> inputQueueResolver, Callable<R> inputProcessing) {
-            this.input = input;
-            this.inputQueueResolver = inputQueueResolver;
+    }
+
+    public static class BuilderForCallable<I, R> extends Builder<I, R> {
+
+        private final Callable<R> inputProcessing;
+
+        public BuilderForCallable(I input, InputQueueResolver<I> inputQueueResolver, Callable<R> inputProcessing) {
+            super(input, inputQueueResolver);
             this.inputProcessing = inputProcessing;
         }
 
-        public Builder<I, R> setSubscribeConsumer(Consumer<? super R> subscribeConsumer) {
-            this.subscribeConsumer = subscribeConsumer;
-            return this;
-        }
-
-        public Builder<I, R> setSubscribeErrorConsumer(Consumer<? super Throwable> subscribeErrorConsumer) {
-            this.subscribeErrorConsumer = subscribeErrorConsumer;
-            return this;
-        }
-
-        public Builder<I, R> setSubscribeOnScheduler(Scheduler subscribeOnScheduler) {
-            this.subscribeOnScheduler = subscribeOnScheduler;
-            return this;
-        }
-
-        public Builder<I, R> setLogActivity(boolean logActivity) {
+        public BuilderForCallable<I, R> setLogActivity(boolean logActivity) {
             this.loggingInfoBuilder.setLogActivity(logActivity);
             return this;
         }
 
-        public Builder<I, R> setInputLoggingDescription(String inputDescription) {
+        public BuilderForCallable<I, R> setInputLoggingDescription(String inputDescription) {
             this.loggingInfoBuilder.setInputDescription(inputDescription);
             this.setLogActivity(true);
             return this;
         }
 
-        public Builder<I, R> setLoggerDecorator(Function<Logger, Logger> loggerDecorator) {
+        public BuilderForCallable<I, R> setLoggerDecorator(Function<Logger, Logger> loggerDecorator) {
+            this.loggingInfoBuilder.setLoggerDecorator(loggerDecorator);
+            this.setLogActivity(true);
+            return this;
+        }
+
+        public SequentialInput<I, R> build() {
+            final InputProcessingRunner<I, R> inputProcessingRunner;
+            final LoggingInfo loggingInfo = super.loggingInfoBuilder.build();
+            if (this.inputProcessing != null) {
+                inputProcessingRunner = new InputProcessingCallableRunner<>(super.input, this.inputProcessing, loggingInfo);
+            } else {
+                throw new IllegalStateException("Cannot set inputProcessingRunner!");
+            }
+
+            return new SequentialInput<>(this.input, this.inputQueueResolver, inputProcessingRunner, loggingInfo);
+        }
+
+    }
+
+
+    public static class BuilderForFlux<I, R> extends Builder<I, R> {
+
+        private final Function<I, Flux<R>> processingFluxCreator;
+        private Consumer<? super R> subscribeConsumer;
+        private Consumer<? super Throwable> subscribeErrorConsumer;
+        private Scheduler subscribeOnScheduler;
+
+        public BuilderForFlux(I input, InputQueueResolver<I> inputQueueResolver, Function<I, Flux<R>> processingFluxCreator) {
+            super(input, inputQueueResolver);
+            this.processingFluxCreator = processingFluxCreator;
+        }
+
+        public BuilderForFlux<I, R> setSubscribeConsumer(Consumer<? super R> subscribeConsumer) {
+            this.subscribeConsumer = subscribeConsumer;
+            return this;
+        }
+
+        public BuilderForFlux<I, R> setSubscribeErrorConsumer(Consumer<? super Throwable> subscribeErrorConsumer) {
+            this.subscribeErrorConsumer = subscribeErrorConsumer;
+            return this;
+        }
+
+        public BuilderForFlux<I, R> setSubscribeOnScheduler(Scheduler subscribeOnScheduler) {
+            this.subscribeOnScheduler = subscribeOnScheduler;
+            return this;
+        }
+
+        public BuilderForFlux<I, R> setLogActivity(boolean logActivity) {
+            this.loggingInfoBuilder.setLogActivity(logActivity);
+            return this;
+        }
+
+        public BuilderForFlux<I, R> setInputLoggingDescription(String inputDescription) {
+            this.loggingInfoBuilder.setInputDescription(inputDescription);
+            this.setLogActivity(true);
+            return this;
+        }
+
+        public BuilderForFlux<I, R> setLoggerDecorator(Function<Logger, Logger> loggerDecorator) {
             this.loggingInfoBuilder.setLoggerDecorator(loggerDecorator);
             this.setLogActivity(true);
             return this;
@@ -104,8 +147,6 @@ public class SequentialInput<I, R> {
             final LoggingInfo loggingInfo = this.loggingInfoBuilder.build();
             if (this.processingFluxCreator != null) {
                 inputProcessingRunner = new InputProcessingFluxRunner<>(this.input, this.processingFluxCreator, this.subscribeConsumer, this.subscribeErrorConsumer, loggingInfo, this.subscribeOnScheduler);
-            } else if (this.inputProcessing != null) {
-                inputProcessingRunner = new InputProcessingCallableRunner<>(this.input, this.inputProcessing, loggingInfo);
             } else {
                 throw new IllegalStateException("Cannot set inputProcessingRunner!");
             }
