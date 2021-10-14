@@ -4,14 +4,16 @@ version "${JAR_VERSION}"
 buildscript {
     repositories {
         mavenCentral()
-        jcenter()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
     }
     dependencies {
         classpath 'org.owasp:dependency-check-gradle:5.0.0'
 
         classpath "org.jfrog.buildinfo:build-info-extractor-gradle:latest.release"
 
-        classpath 'com.github.jengelman.gradle.plugins:shadow:5.2.0'
+        classpath "gradle.plugin.com.github.jengelman.gradle.plugins:shadow:7.0.0"
 
     }
 }
@@ -21,8 +23,8 @@ apply plugin: 'idea'
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-sourceCompatibility = 14.0
-targetCompatibility = 14.0
+sourceCompatibility = 17.0
+targetCompatibility = 17.0
 
 repositories {
     mavenCentral()
