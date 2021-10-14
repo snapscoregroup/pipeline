@@ -87,7 +87,7 @@ public class SequentialInput<I, R> {
             return this;
         }
 
-        public Builder<I, R> setInputDescription(String inputDescription) {
+        public Builder<I, R> setInputLoggingDescription(String inputDescription) {
             this.loggingInfoBuilder.setInputDescription(inputDescription);
             this.setLogActivity(true);
             return this;

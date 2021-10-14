@@ -126,7 +126,7 @@ public class ConcurrentSequentialProcessorTest {
                         .setSubscribeErrorConsumer(e -> {
                             throw new RuntimeException(e);
                         })
-                        .setInputDescription("entity id " + entityId)
+                        .setInputLoggingDescription("entity id " + entityId)
                         .setLogActivity(false)
                         .build();
                 sequentialInputs.add(sequentialInput);

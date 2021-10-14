@@ -146,7 +146,7 @@ public class ConcurrentSequentialProcessorCompletionAwaiterTest {
                                                                             int entityId,
                                                                             TestMessage testMessage) {
         return SequentialInput.newBuilder(testMessage, new TestInputQueueResolver(), processingFluxCreator)
-                .setInputDescription("entity id " + entityId)
+                .setInputLoggingDescription("entity id " + entityId)
                 .setSubscribeOnScheduler(Schedulers.parallel())
                 .setSubscribeErrorConsumer(e -> {
                     throw new RuntimeException(e);
