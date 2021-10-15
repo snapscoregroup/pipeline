@@ -58,12 +58,12 @@ public class VertxHttpClientImpl implements HttpClient {
             HttpClientRequest request = client.request(
                     HttpMethod.GET,
                     requestOptions,
-                    response -> clientCallback.onResponse(response)
+                    clientCallback::onResponse
             );
 
             request.setTimeout(httpClientConfig.readTimeout().toMillis());
 
-            request.exceptionHandler(throwable -> clientCallback.handleException(throwable))
+            request.exceptionHandler(clientCallback::handleException)
                     .end();
 
             logger.decorateSetup(mdc -> mdc.analyticsId("http_client_got_accepted_rq")).info("HttpClient accepted new request: {}", feedRequest.toStringBasicInfo());

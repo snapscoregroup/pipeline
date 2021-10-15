@@ -45,7 +45,6 @@ public class WaitingRequestsTrackerImpl implements WaitingRequestsTracker {
     @Override
     public Optional<TrackedRequest> getTrackedRequest(FeedRequest feedRequest) {
         TrackedRequest trackedRequest = requestsAwaitingToBePulledByUrlMap.get(makeKey(feedRequest));
-        ;
         return Optional.ofNullable(trackedRequest);
     }
 

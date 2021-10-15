@@ -197,7 +197,7 @@ public class FeedRequest {
             this.priority = priority;
             this.numOfRetries = numOfRetries;
             this.url = url;
-            this.properties = new FeedRequestProperties<>();
+            this.properties = new FeedRequestProperties();
         }
 
         public FeedRequestBuilder setFeedName(FeedName feedName) {
@@ -225,7 +225,7 @@ public class FeedRequest {
             return this;
         }
 
-        public FeedRequestBuilder putProperty(Enum propertyType, Object value) {
+        public FeedRequestBuilder putProperty(Enum<?> propertyType, Object value) {
             this.properties.putProperty(propertyType, value);
             return this;
         }
