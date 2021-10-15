@@ -12,8 +12,6 @@ public abstract class ScheduledPulling<K> {
 
     /**
      * @param scheduledPullingKey must have properly implemented equals() and hashCode() methods
-     * @param disposable
-     * @param pullInterval
      */
     public ScheduledPulling(K scheduledPullingKey, Disposable disposable, Duration pullInterval) {
         this.scheduledPullingKey = scheduledPullingKey;
