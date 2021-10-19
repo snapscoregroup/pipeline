@@ -126,7 +126,7 @@ public class FullTextSearchRepositoryImplTest {
     }
 
     @Test
-    public void testFindingTeamBySynonymNameWhenDictionaryEntryHasOnlyIdentifierAndNoPrimaryName() {
+    public void testFindingTeamBySynonymNameWhenDictionaryEntryHasIdentifier() {
 
         final SynonymsDictionary synonymsDictionary = new SynonymsDictionaryImpl();
 
@@ -148,7 +148,7 @@ public class FullTextSearchRepositoryImplTest {
     }
 
     @Test
-    public void testFindingTeamBySynonymNameWhenDictionaryEntryHasOnlyNoPrimaryNameAndNoIdentifier() {
+    public void testFindingTeamBySynonymNameWhenDictionaryEntryHasNoIdentifier() {
 
         final SynonymsDictionary synonymsDictionary = new SynonymsDictionaryImpl();
 
