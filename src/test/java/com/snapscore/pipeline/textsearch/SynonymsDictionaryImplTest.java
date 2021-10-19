@@ -15,17 +15,17 @@ public class SynonymsDictionaryImplTest {
         SynonymsDictionary synonymsDictionary = new SynonymsDictionaryImpl();
 
         final String identifier = "123";
-        final String primaryName = "France";
-        final List<String> synonyms = List.of("Fr", "Fra", "Fce");
+        final String name = "France";
+        final List<String> synonyms = List.of(name, "Fr", "Fra", "Fce");
 
-        TestSynonymsEntry entry1 = new TestSynonymsEntry(identifier, primaryName, synonyms);
+        TestSynonymsEntry entry1 = new TestSynonymsEntry(identifier, synonyms);
 
         synonymsDictionary.setEntry(entry1);
 
         assertEquals(Optional.of(entry1), synonymsDictionary.getEntryByIdentifier(identifier));
-        assertEquals(Optional.of(entry1), synonymsDictionary.getEntryByName(primaryName));
+        assertEquals(Optional.of(entry1), synonymsDictionary.getEntryByName("Fce"));
 
-        TestTeam testTeam = new TestTeam(identifier, primaryName);
+        TestTeam testTeam = new TestTeam(identifier, name);
         assertEquals(List.of(entry1), synonymsDictionary.getEntriesBySearchableItem(testTeam));
     }
 

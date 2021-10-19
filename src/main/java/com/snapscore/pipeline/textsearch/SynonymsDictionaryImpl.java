@@ -19,14 +19,16 @@ public class SynonymsDictionaryImpl implements SynonymsDictionary {
         if (entry.getIdentifier() != null) {
             entriesByIdentifier.put(entry.getIdentifier(), entry);
         }
-        if (entry.getPrimaryName() != null) {
-            entriesByPrimaryName.put(entry.getPrimaryName().toUpperCase(), entry);
+        if (entry.getSynonyms() != null) {
+            for (String synonym : entry.getSynonyms()) {
+                entriesByPrimaryName.put(synonym.toUpperCase(), entry);
+            }
         }
     }
 
     @Override
-    public Optional<SynonymsEntry> getEntryByName(String primaryName) {
-        return Optional.ofNullable(entriesByPrimaryName.get(primaryName.toUpperCase()));
+    public Optional<SynonymsEntry> getEntryByName(String name) {
+        return Optional.ofNullable(entriesByPrimaryName.get(name.toUpperCase()));
     }
 
     @Override

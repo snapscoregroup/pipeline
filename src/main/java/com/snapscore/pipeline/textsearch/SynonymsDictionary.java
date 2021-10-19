@@ -7,7 +7,10 @@ public interface SynonymsDictionary {
 
     void setEntry(SynonymsEntry entry);
 
-    Optional<SynonymsEntry> getEntryByName(String primaryName);
+    /**
+     * @param name  One of the synonym names
+     */
+    Optional<SynonymsEntry> getEntryByName(String name);
 
     Optional<SynonymsEntry> getEntryByIdentifier(String identifier);
 

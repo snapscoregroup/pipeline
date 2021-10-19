@@ -13,13 +13,6 @@ public interface SynonymsEntry {
     @Nullable
     String getIdentifier();
 
-    /**
-     * "Primary" name of the entity (e.g. team, stage ...) that can be searched. The synonyms are tied to this name.
-     * @return can return null but in that case non-null identifier should be provided
-     */
-    @Nullable
-    String getPrimaryName();
-
     List<String> getSynonyms();
 
 }
