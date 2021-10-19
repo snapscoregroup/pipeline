@@ -134,7 +134,7 @@ public class FullTextSearchRepositoryImplTest {
         final String synonym2 = "AT";
         final List<String> synonyms = List.of(synonym1, synonym2);
 
-        final TestSynonymsEntry synonymsForTeam4 = new TestSynonymsEntry(team4.getIdentifier(), synonyms);
+        final SynonymsEntry synonymsForTeam4 = new SynonymsEntry(team4.getIdentifier(), synonyms);
 
         synonymsDictionary.setEntry(synonymsForTeam4);
 
@@ -157,7 +157,7 @@ public class FullTextSearchRepositoryImplTest {
         final String synonym2 = "AT";
         final List<String> synonyms = List.of(teamName, synonym1, synonym2);
 
-        final TestSynonymsEntry synonymsForTeam4 = new TestSynonymsEntry(null, synonyms);
+        final SynonymsEntry synonymsForTeam4 = new SynonymsEntry(null, synonyms);
 
         synonymsDictionary.setEntry(synonymsForTeam4);
 

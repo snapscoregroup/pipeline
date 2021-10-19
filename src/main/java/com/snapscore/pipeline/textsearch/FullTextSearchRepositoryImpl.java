@@ -177,7 +177,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                 if (synonymsDictionary != null && fullTextSearchableItemFactory != null) {
                     final List<SynonymsEntry> entries = synonymsDictionary.getEntriesBySearchableItem(item);
                     if (!entries.isEmpty()) {
-                        final List<String> searchableNamesWithSynonyms = Stream.concat(item.getSearchableNames().stream(), entries.stream().flatMap(e -> e.getSynonyms().stream())).distinct().collect(Collectors.toList());
+                        final List<String> searchableNamesWithSynonyms = Stream.concat(item.getSearchableNames().stream(), entries.stream().flatMap(e -> e.synonyms().stream())).distinct().collect(Collectors.toList());
                         return fullTextSearchableItemFactory.from(item.getIdentifier(), searchableNamesWithSynonyms);
                     }
                 }
