@@ -3,6 +3,7 @@ package com.snapscore.pipeline.textsearch;
 import com.snapscore.pipeline.logging.Logger;
 import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
+import reactor.util.annotation.Nullable;
 
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
@@ -40,12 +41,31 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
     private final ReentrantReadWriteLock.ReadLock readLock = reentrantReadWriteLock.readLock();
     private final ReentrantReadWriteLock.WriteLock writeLock = reentrantReadWriteLock.writeLock();
 
+    @Nullable
+    private final SynonymsDictionary synonymsDictionary;
+
+    @Nullable
+    private final FullTextSearchableItemFactory<T> fullTextSearchableItemFactory;
+
 
     /**
      * @param cacheName used for logging purposes
      */
     public FullTextSearchRepositoryImpl(String cacheName) {
+        this(cacheName, null, null);
+    }
+
+    /**
+     * @param cacheName used for logging purposes
+     * @param synonymsDictionary dictionary containing synonyms that will be used for items added to this repository
+     * @param fullTextSearchableItemFactory needed to create a new instance of {@link FullTextSearchableItem} when synonyms are found for it
+     */
+    public FullTextSearchRepositoryImpl(String cacheName,
+                                        @Nullable SynonymsDictionary synonymsDictionary,
+                                        @Nullable FullTextSearchableItemFactory<T> fullTextSearchableItemFactory) {
         this.cacheName = cacheName;
+        this.synonymsDictionary = synonymsDictionary;
+        this.fullTextSearchableItemFactory = fullTextSearchableItemFactory;
     }
 
     /**
@@ -87,6 +107,9 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         }
 
         private void addToMaps(T item) {
+
+            item = getItemWithSynonyms(item);
+
             removePreviousVersionFromTrieMaps(item);
 
             itemsByIdHelperMap.put(item.getIdentifier(), item);
@@ -128,6 +151,9 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             if (!dataCheckOk(item)) {
                 return;
             }
+
+            item = getItemWithSynonyms(item);
+
             List<String> upperCaseNameKeys = stringHelper.sanitizeAndUpper(item.getSearchableNames());
 
             ItemWrapper<T> itemWrapper = new ItemWrapper<>(item, upperCaseNameKeys);
@@ -144,6 +170,21 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                     }
                 }
             }
+        }
+
+        private T getItemWithSynonyms(T item) {
+            try {
+                if (synonymsDictionary != null && fullTextSearchableItemFactory != null) {
+                    final List<SynonymsEntry> entries = synonymsDictionary.getEntriesBySearchableItem(item);
+                    if (!entries.isEmpty()) {
+                        final List<String> searchableNamesWithSynonyms = Stream.concat(item.getSearchableNames().stream(), entries.stream().flatMap(e -> e.synonyms().stream())).distinct().collect(Collectors.toList());
+                        return fullTextSearchableItemFactory.from(item.getIdentifier(), searchableNamesWithSynonyms);
+                    }
+                }
+            } catch (Exception e) {
+                log.error("Error getting synonyms for item {}", item, e);
+            }
+            return item;
         }
 
         public void removeItemById(String itemId) {
