@@ -1,4 +1,4 @@
-package com.snapscore.pipeline.textsearch;
+package com.snapscore.pipeline.concurrency;
 
 import com.snapscore.pipeline.logging.Logger;
 
