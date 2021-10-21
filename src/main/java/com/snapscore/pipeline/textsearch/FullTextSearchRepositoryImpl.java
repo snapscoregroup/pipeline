@@ -1,5 +1,6 @@
 package com.snapscore.pipeline.textsearch;
 
+import com.snapscore.pipeline.concurrency.LockingWrapper;
 import com.snapscore.pipeline.logging.Logger;
 import org.apache.commons.collections4.Trie;
 import org.apache.commons.collections4.trie.PatriciaTrie;
@@ -23,7 +24,10 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
     private final String cacheName;
 
-    // maps
+    /**
+     * the key of the Trie is a single word
+     * the key of the inner ConcurrentMap is the item identifier
+     */
     private final Trie<String, ConcurrentMap<String, ItemWrapper<T>>> trieMaps = new PatriciaTrie<>();
 
     // only as a helper map to track by id what we have stored here ...
@@ -118,12 +122,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             ItemWrapper<T> itemWrapper = new ItemWrapper<>(item, upperCaseNameKeys);
             List<String> itemWordKeys = itemWrapper.getItemWords();
 
-            for (String key : itemWordKeys) {
-                ConcurrentMap<String, ItemWrapper<T>> matchingItems = trieMaps.get(key);
-                if (matchingItems == null) {
-                    matchingItems = new ConcurrentHashMap<>();
-                    trieMaps.put(key, matchingItems);
-                }
+            for (String word : itemWordKeys) {
+                ConcurrentMap<String, ItemWrapper<T>> matchingItems = trieMaps.computeIfAbsent(word, word0 -> new ConcurrentHashMap<>());
                 try {
                     matchingItems.put(itemWrapper.getIdentifier(), itemWrapper);
                 } catch (Exception e) {
@@ -233,7 +233,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             if (hasMultipleWords) {
                 return searchByMultipleWordInput(searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
             } else {
-                return doSearchBySingleWordInput(searchText, searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
+                return searchBySingleWordInput(searchText, searchTextSanitized, returnedItemsLimit, predicate, resultSorting);
             }
         }
 
@@ -245,8 +245,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
             } else {
                 SmallestMatch<T> smallestMatch = findSmallestMatch(searchTextWords);
                 if (smallestMatch.smallestMatchingMap != null) {
-                    return getResultForMultiWordSearch(returnedItemsLimit, searchTextWords,
-                            smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap, predicate, resultSorting);
+                    return getResultForMultiWordSearch(returnedItemsLimit, searchTextWords, smallestMatch.smallestMatchingMapWord, smallestMatch.smallestMatchingMap, predicate, resultSorting);
                 } else {
                     log.debug("{} No items found!", cacheName);
                     return Collections.emptyList();
@@ -290,7 +289,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                                                     List<String> searchTextWords,
                                                     String smallestMatchingMapWord,
                                                     SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> smallestMatchingMap,
-                                                    Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
+                                                    Predicate<FullTextSearchableItem> predicate,
+                                                    Comparator<T> resultSorting) {
             searchTextWords.remove(smallestMatchingMapWord); // this one is already matched as it provided the prefixMap > remove from list
             searchTextWords.sort(STRING_COMPARATOR); // IMPORTANT to be sorted for the rest of the search algorithm to work correctly and to perform best
 
@@ -309,8 +309,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
                     .collect(Collectors.toList());
         }
 
-        private List<T> doSearchBySingleWordInput(String searchText, String searchTextSanitized, int maxReturnedItemsLimit,
-                                                  Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
+        private List<T> searchBySingleWordInput(String searchText, String searchTextSanitized, int maxReturnedItemsLimit,
+                                                Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
             SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap = trieMaps.prefixMap(searchTextSanitized);
             return getResultForSingleWordSearch(searchText, maxReturnedItemsLimit, prefixMap, predicate, resultSorting);
         }
@@ -318,7 +318,8 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         private List<T> getResultForSingleWordSearch(String searchText,
                                                      int returnedItemsLimit,
                                                      SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> prefixMap,
-                                                     Predicate<FullTextSearchableItem> predicate, Comparator<T> resultSorting) {
+                                                     Predicate<FullTextSearchableItem> predicate,
+                                                     Comparator<T> resultSorting) {
             logPrefixMapInfo(searchText, prefixMap);
 
             Stream<T> stream = prefixMap.values().stream()
@@ -336,7 +337,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         }
 
         private void logPrefixMapInfo(String searchTextWord, SortedMap<String, ConcurrentMap<String, ItemWrapper<T>>> currPrefixMap) {
-            log.debug("PrefixMap keys size = {}; total values = {} for key {}", currPrefixMap.keySet().size(), currPrefixMap.values().stream().mapToLong(m -> m.values().size()).sum(), searchTextWord);
+            log.trace("PrefixMap keys size = {}; total values = {} for key {}", currPrefixMap.keySet().size(), currPrefixMap.values().stream().mapToLong(m -> m.values().size()).sum(), searchTextWord);
         }
 
         private boolean isValid(String searchText) {
@@ -373,7 +374,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
 
         private List<String> sanitizeAndUpper(Collection<String> keyBases) {
             return keyBases.stream()
-                    .filter(keyBase -> keyBase != null)
+                    .filter(Objects::nonNull)
                     .map(keyBase -> keyBase.trim().toUpperCase())
                     .collect(Collectors.toList());
         }

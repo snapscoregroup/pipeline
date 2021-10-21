@@ -126,7 +126,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
         try {
             QueueFeedRequest nextQueueRequest = requestsQueue.peek();
             while (nextQueueRequest != null && requestsPerSecondCounter.incrementIfRequestWithinLimitAndGet(nowSupplier.get())) {
-                requestsQueue.poll(); // remove from head
+                requestsQueue.poll(); // remove from queue head
                 scheduleSinglePull(nextQueueRequest.getFeedRequest(),
                         nextQueueRequest.getPullResultConsumer(),
                         nextQueueRequest.getPullErrorConsumer(),
@@ -146,9 +146,9 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
 
         AtomicBoolean isRetry = new AtomicBoolean(false);
 
-        Mono.just(1) // we need a starting value
-                .map(dummy -> handleRequestIfRetried(isRetry, request))
-                .flatMap(canProceed -> Mono.fromFuture(httpClient.getAsync(request)))
+        Mono.just(request)
+                .map(request0 -> handleRequestIfRetried(isRetry, request0))
+                .flatMap(canProceed -> Mono.fromFuture(httpClient.getAsync(request))) // if we got her eit means that the previous step passed and emmited 'true'
                 .publishOn(Schedulers.parallel())   // emitted results need to be published on parallel scheduler so we do not execute pulled data processing on the httpClient's own threadpool
                 .onErrorMap(error -> {
                     logRequestError(request, error);
@@ -190,7 +190,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                 logDelayedRetry(request);
                 return Mono.just(false)
                         .delayElement(periodicPullNextTriggerInterval)
-                        .flatMap(dummy -> handleRequestIfRetried(isRetry, request)); // call this method again ... until we are within limit at some point
+                        .flatMap(dummy -> handleRequestIfRetried(isRetry, request)); // call this method again ... kind of recursively ... until we are within limit at some point
 
             }
         } else {
