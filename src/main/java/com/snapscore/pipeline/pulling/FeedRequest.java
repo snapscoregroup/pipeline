@@ -99,6 +99,10 @@ public class FeedRequest {
         return url;
     }
 
+    public String getUrlForLogging() {
+        return urlForLogging;
+    }
+
     public LocalDateTime getCreatedDt() {
         return createdDt;
     }
