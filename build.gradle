@@ -50,7 +50,7 @@ dependencies {
     testImplementation group: 'junit', name: 'junit', version: '4.12'
 
     // https://mvnrepository.com/artifact/org.mockito/mockito-all
-    testImplementation group: 'org.mockito', name: 'mockito-all', version: '1.10.19'
+    testImplementation group: 'org.mockito', name: 'mockito-core', version: '4.6.1'
 
     // Vertx LIBS
     api group: 'io.vertx', name: 'vertx-core', version: "${vertxVersion}"
@@ -88,11 +88,28 @@ jar {
                 'Implementation-Version': version,
                 'Main-Class': 'com.snapscore.pipeline'
     }
+    classifier = 'core'
 }
 
 // Allows the Fat Jar to be uploaded to Artifactory
 artifacts {
     archives shadowJar
+    archives jar
+}
+
+configurations {
+    fatJarRuntimeElements {
+        canBeResolved = false
+        canBeConsumed = true
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
+            attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
+            attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EMBEDDED)) // means no relocation of packages
+            attribute(TargetJvmVersion.TARGET_JVM_VERSION_ATTRIBUTE, 8)
+        }
+        outgoing.artifact(shadowJar)
+    }
 }
 
 publishing {
