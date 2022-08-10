@@ -100,7 +100,7 @@ public class PullingSchedulerImplTest {
         ScheduledDynamicRequests<TestData.FeedNameEnum> scheduledDynamicRequests = pullingScheduler.schedulePullingDynamicRequests(scheduledPullingKey, feedRequestsSupplier, pullResultConsumerMock, pullError -> {
         }, Duration.ofMillis(1), Duration.ZERO);
         Thread.sleep(100); // give async code time to run
-        Mockito.verify(pullResultConsumerMock, Mockito.atLeast(10)).accept(Mockito.anyObject());
+        Mockito.verify(pullResultConsumerMock, Mockito.atLeast(10)).accept(Mockito.any());
 
         // when
         scheduledDynamicRequests.cancel();
@@ -108,7 +108,7 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100); // give async code time to run
 
         // then
-        Mockito.verify(pullResultConsumerMock, Mockito.atMost(4)).accept(Mockito.anyObject()); // at most four times as when as when we cancel there might just be one request being processed that will return the data
+        Mockito.verify(pullResultConsumerMock, Mockito.atMost(4)).accept(Mockito.any()); // at most four times as when as when we cancel there might just be one request being processed that will return the data
     }
 
 
@@ -149,7 +149,7 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100); // give async code time to run
 
         // then
-        Mockito.verify(pullResultConsumerMock, Mockito.atMost(1)).accept(Mockito.anyObject()); // at most once as when as when we cancel there might just be one request being processed that will return the data
+        Mockito.verify(pullResultConsumerMock, Mockito.atMost(1)).accept(Mockito.any()); // at most once as when as when we cancel there might just be one request being processed that will return the data
     }
 
 
@@ -200,7 +200,7 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100);
 
         assertEquals(10, httpClientMock.invocationCounter.get());
-        Mockito.verify(pullResultConsumerMock, Mockito.times(0)).accept(Mockito.anyObject());
+        Mockito.verify(pullResultConsumerMock, Mockito.times(0)).accept(Mockito.any());
     }
 
     @Test
@@ -222,7 +222,7 @@ public class PullingSchedulerImplTest {
         Thread.sleep(1400);
 
         assertEquals(9, httpClientMock.invocationCounter.get());
-        Mockito.verify(pullResultConsumerMock, Mockito.times(0)).accept(Mockito.anyObject());
+        Mockito.verify(pullResultConsumerMock, Mockito.times(0)).accept(Mockito.any());
     }
 
     @Test
@@ -247,7 +247,7 @@ public class PullingSchedulerImplTest {
         // when first requests per second limit is reached only first half of requests is sent ...
         Thread.sleep(200);
 
-        Mockito.verify(pullResultConsumerMock, Mockito.times(10)).accept(Mockito.anyObject());
+        Mockito.verify(pullResultConsumerMock, Mockito.times(10)).accept(Mockito.any());
         Mockito.reset(pullResultConsumerMock);
 
         // ... then after 1 second passes ... the next half of requests gets sent
@@ -256,7 +256,7 @@ public class PullingSchedulerImplTest {
 
         Thread.sleep(2000);
 
-        Mockito.verify(pullResultConsumerMock, Mockito.times(10)).accept(Mockito.anyObject());
+        Mockito.verify(pullResultConsumerMock, Mockito.times(10)).accept(Mockito.any());
 
     }
 
