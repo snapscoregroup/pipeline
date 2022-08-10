@@ -15,8 +15,6 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import static net.logstash.logback.encoder.org.apache.commons.lang3.StringUtils.trim;
-
 
 public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> implements FullTextSearchRepository<T> {
 
@@ -369,7 +367,7 @@ public class FullTextSearchRepositoryImpl<T extends FullTextSearchableItem> impl
         }
 
         private String sanitizeAndUpper(String keyBase) {
-            return trim(keyBase).toUpperCase();
+            return StringUtils.trim(keyBase).toUpperCase();
         }
 
         private List<String> sanitizeAndUpper(Collection<String> keyBases) {

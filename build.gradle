@@ -63,6 +63,7 @@ dependencies {
 
     api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
 
+    api 'org.apache.commons:commons-lang3:3.12.0'
     api group: 'org.apache.commons', name: 'commons-collections4', version: '4.3'
 }
 
