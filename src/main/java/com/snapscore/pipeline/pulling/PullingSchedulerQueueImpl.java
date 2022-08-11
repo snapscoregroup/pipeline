@@ -5,6 +5,7 @@ import com.snapscore.pipeline.pulling.http.HttpClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import reactor.util.retry.Retry;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -155,7 +156,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                     waitingRequestsTracker.untrackProcessed(request);   // if an error happened and will be retried at some point, we want to untrack the request so that other requests coming in for the same url do not get ignored
                     return error;
                 })
-                .retryBackoff(request.getNumOfRetries(), request.getRetryBackoff())
+                .retryWhen(Retry.backoff(request.getNumOfRetries(), request.getRetryBackoff()))
                 .onErrorResume(error -> {
                     logDroppingRetrying(request, error);
                     logEnqueuedRequestCount();

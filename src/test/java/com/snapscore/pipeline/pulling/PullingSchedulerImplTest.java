@@ -376,7 +376,6 @@ public class PullingSchedulerImplTest {
                 .setPoolCleanerPeriod(30000)
                 .setIdleTimeout(30).setIdleTimeoutUnit(TimeUnit.SECONDS)
                 .setTcpNoDelay(true)
-                .setUsePooledBuffers(true)
                 .setSendBufferSize(4096)
                 .setReceiveBufferSize(httpResponseBufferSize) // 40 MB
                 .setLogActivity(false)
