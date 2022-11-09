@@ -1,0 +1,26 @@
+name: Pipeline
+
+on: push
+
+jobs:
+  build:
+    # OS
+    runs-on: self-hosted
+    # Steps: sequence of tasks that will be executed as part of the job
+    steps:
+    # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup java
+      uses: actions/setup-java@v3
+      with:
+        distribution: 'zulu'
+        java-version: '17'
+
+    # The runner has SSH keys that can be used to access private repos, use them
+    - name: Use the SSH keys installed on the runner
+      uses: frankdejonge/use-ssh-agent@1.0.2
+
+    - name: Gradle build
+      run: ./gradlew clean test build artifactoryPublish -PJAR_VERSION=${{ github.ref_name }}
