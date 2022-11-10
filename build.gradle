@@ -128,9 +128,3 @@ publishing {
         }
     }
 }
-
-//configurations.all {
-//    resolutionStrategy {
-//        failOnVersionConflict()
-//    }
-//}
