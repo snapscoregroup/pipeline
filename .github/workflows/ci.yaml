@@ -5,8 +5,7 @@ on: push
 jobs:
   build:
     # OS
-    runs-on: self-hosted
-    # Steps: sequence of tasks that will be executed as part of the job
+    runs-on: ubuntu-22.04
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout
@@ -18,9 +17,16 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    # The runner has SSH keys that can be used to access private repos, use them
-    - name: Use the SSH keys installed on the runner
-      uses: frankdejonge/use-ssh-agent@1.0.2
-
     - name: Gradle build
-      run: ./gradlew clean test build artifactoryPublish -PJAR_VERSION=${{ github.ref_name }}
+      run: ./gradlew clean test build
+
+  publish:
+    runs-on: ubuntu-22.04
+    needs: build
+    if: github.ref_name == 'master' || github.ref_name == 'ci'
+    env:
+      GITHUB_CREDENTIALS_USR: ${{ secrets.GH_USER }}
+      GITHUB_CREDENTIALS_PSW: ${{ secrets.GH_TOKEN }}
+    steps:
+      - name: Publish
+        run: ./gradlew artifactoryPublish
