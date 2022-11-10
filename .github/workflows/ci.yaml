@@ -25,4 +25,4 @@ jobs:
 
     - name: Publish
       if: github.ref_name == 'master' || github.ref_name == 'ci'
-      run: ./gradlew artifactoryPublish
+      run: ./gradlew publish
