@@ -6,6 +6,9 @@ jobs:
   build:
     # OS
     runs-on: ubuntu-22.04
+    env:
+      GITHUB_CREDENTIALS_USR: ${{ secrets.GH_USER }}
+      GITHUB_CREDENTIALS_PSW: ${{ secrets.GH_TOKEN }}
     steps:
     # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
     - name: Checkout
@@ -20,13 +23,6 @@ jobs:
     - name: Gradle build
       run: ./gradlew clean test build
 
-  publish:
-    runs-on: ubuntu-22.04
-    needs: build
-    if: github.ref_name == 'master' || github.ref_name == 'ci'
-    env:
-      GITHUB_CREDENTIALS_USR: ${{ secrets.GH_USER }}
-      GITHUB_CREDENTIALS_PSW: ${{ secrets.GH_TOKEN }}
-    steps:
-      - name: Publish
-        run: ./gradlew artifactoryPublish
+    - name: Publish
+      if: github.ref_name == 'master' || github.ref_name == 'ci'
+      run: ./gradlew artifactoryPublish
