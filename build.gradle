@@ -118,16 +118,13 @@ publishing {
         maven {
             name = "GitHubPackages"
             url = uri("https://maven.pkg.github.com/snapscoregroup/pipeline")
-            credentials {
-                username = System.getenv("GITHUB_CREDENTIALS_USR")
-                password = System.getenv("GITHUB_CREDENTIALS_PSW")
+            credentials(HttpHeaderCredentials) {
+                name "Authorization"
+                value "Bearer ${System.getenv("GITHUB_TOKEN")}"
+            }
+            authentication {
+                header(HttpHeaderAuthentication)
             }
         }
     }
 }
-
-//configurations.all {
-//    resolutionStrategy {
-//        failOnVersionConflict()
-//    }
-//}
