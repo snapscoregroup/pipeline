@@ -1,7 +1,5 @@
 name: Packages cleanup
-on:
-  registry_package:
-    types: [published]
+on: push
 jobs:
   clean:
     runs-on: ubuntu-22.04
