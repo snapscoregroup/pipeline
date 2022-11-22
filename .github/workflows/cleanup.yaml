@@ -2,7 +2,7 @@ name: Packages cleanup
 on: registry_package
 jobs:
   clean:
-    runs-on: self-hosted
+    runs-on: ubuntu-22.04
     steps:
       - name: Delete old packages
         uses: actions/delete-package-versions@v3
