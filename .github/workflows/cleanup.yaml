@@ -1,5 +1,7 @@
 name: Packages cleanup
-on: registry_package
+on:
+  registry_package:
+    types: [published]
 jobs:
   clean:
     runs-on: ubuntu-22.04
@@ -7,5 +9,5 @@ jobs:
       - name: Delete old packages
         uses: actions/delete-package-versions@v3
         with:
-          package-name: pipeline
+          package-name: com.snapscore.pipeline
           min-versions-to-keep: 10
