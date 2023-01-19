@@ -34,15 +34,15 @@ configurations.all {
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
-def vertxVersion = '4.3.2'
+def vertxVersion = '4.3.7'
 
 dependencies {
 
     // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
     api group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.14.9'
 
-    api 'io.projectreactor.netty:reactor-netty:1.0.24'
-    api 'io.projectreactor:reactor-core:3.4.24'
+    api 'io.projectreactor.netty:reactor-netty:1.1.2'
+    api 'io.projectreactor:reactor-core:3.5.2'
 
     testImplementation('io.projectreactor:reactor-test:3.4.24')
     testImplementation 'io.projectreactor.tools:blockhound:1.0.6.RELEASE'
@@ -102,7 +102,8 @@ configurations {
             attribute(Usage.USAGE_ATTRIBUTE, objects.named(Usage, Usage.JAVA_RUNTIME))
             attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category, Category.LIBRARY))
             attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements, LibraryElements.JAR))
-            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EMBEDDED)) // means no relocation of packages
+            attribute(Bundling.BUNDLING_ATTRIBUTE, objects.named(Bundling, Bundling.EMBEDDED))
+            // means no relocation of packages
         }
         outgoing.artifact(shadowJar)
     }

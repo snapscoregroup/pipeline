@@ -99,7 +99,7 @@ public class ConcurrentSequentialProcessorTest {
     private Flux<TestMessage> processTestMessageFlux(TestMessage testMessage1) {
         return Flux.just(testMessage1)
                 .doOnNext(testMessage0 -> logger.info("Before blocking processing {}", testMessage0))
-                .publishOn(Schedulers.elastic())
+                .publishOn(Schedulers.boundedElastic())
                 .doOnNext(this::doBlockingOperation)
                 .publishOn(Schedulers.parallel());
     }
