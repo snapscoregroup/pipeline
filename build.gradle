@@ -23,8 +23,8 @@ apply plugin: 'idea'
 apply plugin: 'maven-publish'
 apply plugin: 'com.github.johnrengelman.shadow'
 
-sourceCompatibility = 17.0
-targetCompatibility = 17.0
+sourceCompatibility = 19.0
+targetCompatibility = 19.0
 
 repositories {
     mavenCentral()
@@ -34,7 +34,7 @@ configurations.all {
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
-def vertxVersion = '4.3.7'
+def vertxVersion = '4.4.1'
 
 dependencies {
 
@@ -74,8 +74,8 @@ test {
 }
 
 shadowJar {
-    baseName = project.name
-    classifier = ''
+    archiveBaseName = project.name
+    archiveClassifier = ''
     archiveVersion = version
 }
 
@@ -85,7 +85,7 @@ jar {
                 'Implementation-Version': version,
                 'Main-Class': 'com.snapscore.pipeline'
     }
-    classifier = 'core'
+    archiveClassifier = 'core'
 }
 
 // Allows the Fat Jar to be uploaded to Artifactory
