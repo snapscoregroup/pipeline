@@ -50,7 +50,7 @@ public interface PullingScheduler {
     /**
      * Schedules pulling at given interval all the specified FeedRequests.
      *
-     * @param scheduledPullingKey a unique key chosen to identify all the created the shcedledPulling of the group of specified feedRequests
+     * @param scheduledPullingKey a unique key chosen to identify all the created the scheduledPulling of the group of specified feedRequests
      * @param feedRequests        the requests to be pulled at the specified interval.
      * @param pullResultConsumer  consumes and processes the pulled data - if there are any
      * @param pullErrorConsumer

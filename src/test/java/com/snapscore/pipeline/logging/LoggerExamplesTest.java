@@ -57,7 +57,7 @@ public class LoggerExamplesTest {
                 .info("Processing stage event ...");
 
         try {
-            int i = 1 /0;
+            @SuppressWarnings("divzero") int i = 1 /0;
         } catch (Exception e) {
             Logger.setup(mdc -> mdc.cls(LoggerExamplesTest.class).stgIdEnet("847563").eIdEnet("34309393").evTy("FULL_MATCH_DETAILS"))
                     .error("Processing stage event ... attempt no {}", 2, e);

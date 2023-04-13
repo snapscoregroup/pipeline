@@ -35,4 +35,7 @@ public abstract class ScheduledPulling<K> {
         return pullInterval;
     }
 
+    public Disposable getDisposable() {
+        return disposable;
+    }
 }

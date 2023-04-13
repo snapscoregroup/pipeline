@@ -1,11 +1,8 @@
 package com.snapscore.pipeline.pulling;
 
 import org.junit.Test;
-import reactor.core.publisher.Flux;
 
 import java.time.Duration;
-
-import static org.junit.Assert.*;
 
 public class RetryDelaySupplierByPullIntervalAndNumOfRetriesTest {
 
