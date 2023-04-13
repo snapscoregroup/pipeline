@@ -149,7 +149,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
 
         Mono.just(request)
                 .map(request0 -> handleRequestIfRetried(isRetry, request0))
-                .flatMap(canProceed -> Mono.fromFuture(httpClient.getAsync(request))) // if we got her eit means that the previous step passed and emmited 'true'
+                .flatMap(canProceed -> Mono.fromFuture(httpClient.getAsync(request))) // if we got here it means that the previous step passed and emmited 'true'
                 .publishOn(Schedulers.parallel())   // emitted results need to be published on parallel scheduler so we do not execute pulled data processing on the httpClient's own threadpool
                 .onErrorMap(error -> {
                     logRequestError(request, error);

@@ -2,10 +2,6 @@ package com.snapscore.pipeline.pulling;
 
 import org.junit.Test;
 
-import java.time.Duration;
-
-import static org.junit.Assert.*;
-
 public class RetryDelaySupplierRandomisedTest {
 
     @Test
