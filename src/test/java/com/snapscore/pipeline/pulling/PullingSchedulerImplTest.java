@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -364,6 +365,11 @@ public class PullingSchedulerImplTest {
             @Override
             public int countOfRequestsAwaitingResponse() {
                 return 0;
+            }
+
+            @Override
+            public Map<FeedPriorityEnum, Long> countOfRequestsByPriority() {
+                return null;
             }
         };
 

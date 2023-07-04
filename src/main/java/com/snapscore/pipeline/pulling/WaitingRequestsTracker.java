@@ -1,7 +1,6 @@
 package com.snapscore.pipeline.pulling;
 
-import com.snapscore.pipeline.pulling.FeedRequest;
-
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -19,5 +18,7 @@ public interface WaitingRequestsTracker {
     void untrackProcessed(FeedRequest feedRequest);
 
     int countOfRequestsAwaitingResponse();
+
+    Map<FeedPriorityEnum, Long> countOfRequestsByPriority();
 
 }
