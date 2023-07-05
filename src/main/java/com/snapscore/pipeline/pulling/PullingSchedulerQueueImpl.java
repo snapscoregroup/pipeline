@@ -10,6 +10,7 @@ import reactor.util.retry.Retry;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Comparator;
+import java.util.List;
 import java.util.Optional;
 import java.util.Queue;
 import java.util.concurrent.PriorityBlockingQueue;
@@ -87,6 +88,11 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                                                Consumer<PullError> pullErrorConsumer) {
         enqueueRequest(feedRequest, pullResultConsumer, pullErrorConsumer);
         dequeueNextAndPull();
+    }
+
+    @Override
+    public synchronized List<FeedRequest> getCurrentQueue() {
+        return requestsQueue.stream().map(QueueFeedRequest::getFeedRequest).toList();
     }
 
     /**
