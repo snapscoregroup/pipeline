@@ -1,5 +1,6 @@
 package com.snapscore.pipeline.pulling;
 
+import java.util.List;
 import java.util.function.Consumer;
 
 public interface PullingSchedulerQueue {
@@ -11,6 +12,8 @@ public interface PullingSchedulerQueue {
     void enqueueForPulling(FeedRequest feedRequest,
                            Consumer<PullResult> pullResultConsumer,
                            Consumer<PullError> pullErrorConsumer);
+
+    List<FeedRequest> getCurrentQueue();
     
 
 }
