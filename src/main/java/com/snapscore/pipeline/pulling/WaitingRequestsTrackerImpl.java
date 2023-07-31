@@ -2,9 +2,7 @@ package com.snapscore.pipeline.pulling;
 
 import com.snapscore.pipeline.logging.Logger;
 
-import java.util.Arrays;
-import java.util.Map;
-import java.util.Optional;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.function.Function;
@@ -71,12 +69,14 @@ public class WaitingRequestsTrackerImpl implements WaitingRequestsTracker {
     }
 
     @Override
-    public Map<FeedPriorityEnum, Long> countOfRequestsByPriority() {
+    public SortedMap<FeedPriorityEnum, Long> countOfRequestsByPriority() {
         final Map<FeedPriorityEnum, Long> collect = requestsAwaitingToBePulledByUrlMap.values().stream()
                 .map(trackedRequest -> trackedRequest.getFeedRequest().priority)
                 .collect(Collectors.groupingBy(Function.identity(), Collectors.counting()));
-        return Arrays.stream(FeedPriorityEnum.values())
-                .collect(Collectors.toMap(Function.identity(), feedPriorityEnum -> collect.getOrDefault(feedPriorityEnum, 0L)));
+        SortedMap<FeedPriorityEnum, Long> result = new TreeMap<>();
+        Arrays.stream(FeedPriorityEnum.values())
+                .forEach(priority -> result.put(priority, collect.getOrDefault(priority, 0L)));
+        return result;
     }
 
     private String makeKey(FeedRequest feedRequest) {

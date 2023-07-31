@@ -1,7 +1,7 @@
 package com.snapscore.pipeline.pulling;
 
-import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 
 /**
  * Used for tracking of requests that have been passed to the HttpClient for handling.
@@ -19,6 +19,6 @@ public interface WaitingRequestsTracker {
 
     int countOfRequestsAwaitingResponse();
 
-    Map<FeedPriorityEnum, Long> countOfRequestsByPriority();
+    SortedMap<FeedPriorityEnum, Long> countOfRequestsByPriority();
 
 }
