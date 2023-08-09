@@ -16,6 +16,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.SortedMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -368,7 +369,7 @@ public class PullingSchedulerImplTest {
             }
 
             @Override
-            public Map<FeedPriorityEnum, Long> countOfRequestsByPriority() {
+            public SortedMap<FeedPriorityEnum, Long> countOfRequestsByPriority() {
                 return null;
             }
         };
