@@ -327,8 +327,7 @@ public class PullingSchedulerImplTest {
         FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 9, "url_1").setRetryDelaySupplier(rq -> retryDelay).build();
         Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
 
-        pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {
-        });
+        pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
 
         Thread.sleep(100);
 
@@ -337,21 +336,22 @@ public class PullingSchedulerImplTest {
     }
 
     @Test
-    @Ignore
-    public void testThatDuplicateRequestWontGetIgnored() throws InterruptedException {
+    public void testThatDuplicateRetriedRequestGetsIgnored() throws InterruptedException {
+        HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
+        waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
-        pullingScheduler = newPullingScheduler(requestsPerSecondCounter, true);
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), true);
+        pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
 
-
-        FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 1, "url_1").build();
+        final Duration retryDelay = Duration.ZERO;
+        FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 9, "url_1").setRetryDelaySupplier(rq -> retryDelay).build();
         Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
 
-        for (int i = 0; i < 2; i++)
-            pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
+        pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
 
         Thread.sleep(100);
 
-        Mockito.verifyNoInteractions(pullResultConsumerMock);
+        assertFalse(((PullingSchedulerQueueImpl) pullingSchedulerQueue).shouldMakeRequest(feedRequest));
     }
 
 
