@@ -29,19 +29,28 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
     public static final Duration PERIODIC_PULL_NEXT_TRIGGER_INTERVAL = Duration.ofMillis(5);
     private final Duration periodicPullNextTriggerInterval;
     private volatile Supplier<LocalDateTime> nowSupplier;
+    private final boolean ignoreDelayedRequests;
 
     public PullingSchedulerQueueImpl(HttpClient httpClient,
                                      WaitingRequestsTracker waitingRequestsTracker,
                                      RequestsPerSecondCounter requestsPerSecondCounter,
                                      Comparator<FeedRequest> requestsPrioritizingComparator) {
+        this(httpClient, waitingRequestsTracker, requestsPerSecondCounter, requestsPrioritizingComparator, false);
+    }
+
+    public PullingSchedulerQueueImpl(HttpClient httpClient,
+                                     WaitingRequestsTracker waitingRequestsTracker,
+                                     RequestsPerSecondCounter requestsPerSecondCounter,
+                                     Comparator<FeedRequest> requestsPrioritizingComparator,
+                                     boolean ignoreDelayedRequests) {
         this(
                 httpClient,
                 waitingRequestsTracker,
                 requestsPerSecondCounter,
                 requestsPrioritizingComparator,
                 PERIODIC_PULL_NEXT_TRIGGER_INTERVAL, // sensible default
-                LocalDateTime::now
-        );
+                LocalDateTime::now,
+                ignoreDelayedRequests);
     }
 
     /**
@@ -49,23 +58,34 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
      * package private access is intentional
      *
      * @param periodicPullNextTriggerInterval helps testability
-     * @param nowSupplier              helps testability
+     * @param nowSupplier                     helps testability
+     * @param ignoreDelayedRequests
      */
     PullingSchedulerQueueImpl(HttpClient httpClient,
                               WaitingRequestsTracker waitingRequestsTracker,
                               RequestsPerSecondCounter requestsPerSecondCounter,
                               Comparator<FeedRequest> requestsPrioritizingComparator,
                               Duration periodicPullNextTriggerInterval,
-                              Supplier<LocalDateTime> nowSupplier) {
+                              Supplier<LocalDateTime> nowSupplier,
+                              boolean ignoreDelayedRequests) {
         this.httpClient = httpClient;
         this.waitingRequestsTracker = waitingRequestsTracker;
         this.requestsPerSecondCounter = requestsPerSecondCounter;
         this.requestsQueue = new PriorityBlockingQueue<>(100, QueueFeedRequest.makeComparatorFrom(requestsPrioritizingComparator));
         this.periodicPullNextTriggerInterval = periodicPullNextTriggerInterval;
         this.nowSupplier = nowSupplier;
+        this.ignoreDelayedRequests = ignoreDelayedRequests;
         schedulePeriodicPullNextTrigger();
     }
 
+    PullingSchedulerQueueImpl(HttpClient httpClient,
+                              WaitingRequestsTracker waitingRequestsTracker,
+                              RequestsPerSecondCounter requestsPerSecondCounter,
+                              Comparator<FeedRequest> requestsPrioritizingComparator,
+                              Duration periodicPullNextTriggerInterval,
+                              Supplier<LocalDateTime> nowSupplier) {
+        this(httpClient, waitingRequestsTracker, requestsPerSecondCounter, requestsPrioritizingComparator, periodicPullNextTriggerInterval, nowSupplier, false);
+    }
 
     private void schedulePeriodicPullNextTrigger() {
         Flux.interval(periodicPullNextTriggerInterval, periodicPullNextTriggerInterval)
@@ -104,7 +124,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
     }
 
     boolean shouldMakeRequest(FeedRequest feedRequest) {
-        return !waitingRequestsTracker.isAwaitingResponse(feedRequest) || isAwaitingForTooLong(feedRequest);
+        return (!waitingRequestsTracker.isAwaitingResponse(feedRequest) && !(ignoreDelayedRequests && waitingRequestsTracker.isAwaitingRetry(feedRequest))) || isAwaitingForTooLong(feedRequest);
     }
 
     private boolean isAwaitingForTooLong(FeedRequest feedRequest) {
@@ -154,6 +174,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
                 .onErrorMap(error -> {
                     logRequestError(request, error);
                     waitingRequestsTracker.untrackProcessed(request);   // if an error happened and will be retried at some point, we want to untrack the request so that other requests coming in for the same url do not get ignored
+                    waitingRequestsTracker.trackAwaitingRetry(request);
                     return error;
                 })
                 .retryWhen(Retry.backoff(request.getNumOfRetries(), request.getRetryBackoff()))
@@ -184,6 +205,7 @@ public class PullingSchedulerQueueImpl implements PullingSchedulerQueue {
         if (isRetry.get()) {
             if (requestsPerSecondCounter.incrementIfRequestWithinLimitAndGet(nowSupplier.get())) {
                 logRetry(request);
+                waitingRequestsTracker.untrackRetried(request);
                 waitingRequestsTracker.trackAwaitingResponse(request);
                 return Mono.just(true);
             } else {

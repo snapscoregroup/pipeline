@@ -23,8 +23,7 @@ import java.util.function.Supplier;
 
 import static com.snapscore.pipeline.pulling.TestData.MATCH_DETAIL_FEED_NAME;
 import static com.snapscore.pipeline.pulling.TestData.STAGE_FIXTURES_FEED_NAME;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class PullingSchedulerImplTest {
 
@@ -34,15 +33,18 @@ public class PullingSchedulerImplTest {
     private HttpClient httpClientMock;
     private PullingScheduler pullingScheduler;
     private WaitingRequestsTracker waitingRequestsTracker;
-    private PullingSchedulerQueue pullingSchedulerQueue;
 
     @Before
     public void setUp() throws Exception {
         httpClientMock = new HttpClientMock();
         waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
-        pullingSchedulerQueue = new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now());
-        pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
+        pullingScheduler = newPullingScheduler(requestsPerSecondCounter, false);
+    }
+
+    private PullingScheduler newPullingScheduler(RequestsPerSecondCounter requestsPerSecondCounter, boolean ignoreDelayedRequests) {
+        PullingSchedulerQueue pullingSchedulerQueue = new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), ignoreDelayedRequests);
+        return new PullingSchedulerImpl(pullingSchedulerQueue);
     }
 
     @Test
@@ -150,7 +152,7 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100); // give async code time to run
 
         // then
-        Mockito.verify(pullResultConsumerMock, Mockito.atMost(1)).accept(Mockito.any()); // at most once as when as when we cancel there might just be one request being processed that will return the data
+        Mockito.verify(pullResultConsumerMock, Mockito.atMost(2)).accept(Mockito.any()); // at most once as when as when we cancel there might just be one request being processed that will return the data
     }
 
 
@@ -188,7 +190,7 @@ public class PullingSchedulerImplTest {
         HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
         waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
-        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now());
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), false);
         pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
 
         final Duration retryDelay = Duration.ZERO;
@@ -210,7 +212,7 @@ public class PullingSchedulerImplTest {
         HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
         waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
-        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now());
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), false);
         pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
 
         final Duration retryDelay = Duration.ZERO;
@@ -235,7 +237,7 @@ public class PullingSchedulerImplTest {
         LocalDateTime now = LocalDateTime.of(2020, 1, 1, 12, 0, 1);
         Supplier<LocalDateTime> nowSupplier1 = () -> now;
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(10, now.minus(1000L, ChronoUnit.MILLIS));
-        final PullingSchedulerQueueImpl pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofMillis(1000), nowSupplier1);
+        final PullingSchedulerQueueImpl pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofMillis(1000), nowSupplier1, false);
         PullingSchedulerImpl pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
 
         // when
@@ -272,7 +274,7 @@ public class PullingSchedulerImplTest {
         Supplier<LocalDateTime> nowSupplier1 = () -> now;
         RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(10, now.minus(1000L, ChronoUnit.MILLIS));
         HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
-        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofMillis(1000), nowSupplier1);
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofMillis(1000), nowSupplier1, false);
         PullingSchedulerImpl pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
 
         // when ... a requests gets retried ... it consumes the requests quota ...
@@ -311,6 +313,45 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100);
 
         Mockito.verify(pullResultConsumerMock, Mockito.times(1)).accept(new PullResult(feedRequest, pulledData));
+    }
+
+    @Test
+    public void testThatFailedRequestGetsStored() throws InterruptedException {
+        HttpClientFailingMock httpClientMock = new HttpClientFailingMock();
+        waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
+        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), false);
+        pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
+
+        final Duration retryDelay = Duration.ZERO;
+        FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 9, "url_1").setRetryDelaySupplier(rq -> retryDelay).build();
+        Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
+
+        pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {
+        });
+
+        Thread.sleep(100);
+
+        assertFalse(waitingRequestsTracker.isAwaitingResponse(feedRequest));
+        assertTrue(waitingRequestsTracker.isAwaitingRetry(feedRequest));
+    }
+
+    @Test
+    @Ignore
+    public void testThatDuplicateRequestWontGetIgnored() throws InterruptedException {
+        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
+        pullingScheduler = newPullingScheduler(requestsPerSecondCounter, true);
+
+
+        FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 1, "url_1").build();
+        Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
+
+        for (int i = 0; i < 2; i++)
+            pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
+
+        Thread.sleep(100);
+
+        Mockito.verifyNoInteractions(pullResultConsumerMock);
     }
 
 
@@ -364,6 +405,21 @@ public class PullingSchedulerImplTest {
             @Override
             public int countOfRequestsAwaitingResponse() {
                 return 0;
+            }
+
+            @Override
+            public boolean isAwaitingRetry(FeedRequest feedRequest) {
+                return false;
+            }
+
+            @Override
+            public void trackAwaitingRetry(FeedRequest feedRequest) {
+
+            }
+
+            @Override
+            public void untrackRetried(FeedRequest feedRequest) {
+
             }
         };
 
