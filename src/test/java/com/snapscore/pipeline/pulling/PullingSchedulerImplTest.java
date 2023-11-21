@@ -306,10 +306,8 @@ public class PullingSchedulerImplTest {
         FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 1, "url_1").build();
         Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
 
-        for (int i = 0; i < 2; i++) {
-            pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {
-            });
-        }
+        for (int i = 0; i < 2; i++)
+            pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
 
         Thread.sleep(100);
 
@@ -353,6 +351,27 @@ public class PullingSchedulerImplTest {
         Thread.sleep(100);
 
         assertFalse(((PullingSchedulerQueueImpl) pullingSchedulerQueue).shouldMakeRequest(feedRequest));
+    }
+
+    @Test
+    public void testThatFailedRequestGetsRemovedAfterSuccessfulRetry() throws InterruptedException {
+        HttpClientFirstFailMock httpClientMock = new HttpClientFirstFailMock();
+        waitingRequestsTracker = new WaitingRequestsTrackerImpl(feedRequest -> feedRequest.getUrl());
+        RequestsPerSecondCounter requestsPerSecondCounter = new RequestsPerSecondCounterImpl(Integer.MAX_VALUE);
+        final PullingSchedulerQueue pullingSchedulerQueue =  new PullingSchedulerQueueImpl(httpClientMock, waitingRequestsTracker, requestsPerSecondCounter, FeedRequest.DEFAULT_PRIORITY_COMPARATOR, Duration.ofDays(1), () -> LocalDateTime.now(), false);
+        pullingScheduler = new PullingSchedulerImpl(pullingSchedulerQueue);
+
+        final Duration retryDelay = Duration.ZERO;
+        FeedRequest feedRequest = FeedRequest.newBuilder(MATCH_DETAIL_FEED_NAME, FeedPriorityEnum.MEDIUM, 9, "url_1").setRetryDelaySupplier(rq -> retryDelay).build();
+        Consumer<PullResult> pullResultConsumerMock = Mockito.mock(Consumer.class);
+
+        for (int i = 0; i < 2; i++)
+            pullingScheduler.pullOnce(feedRequest, pullResultConsumerMock, pullError -> {});
+
+        Thread.sleep(100);
+
+        assertFalse(waitingRequestsTracker.isAwaitingResponse(feedRequest));
+        assertFalse(waitingRequestsTracker.isAwaitingRetry(feedRequest));
     }
 
 
