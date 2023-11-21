@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
@@ -486,6 +487,26 @@ public class PullingSchedulerImplTest {
             invocationCounter.incrementAndGet();
             log.info("Pulling {}", feedRequest.toStringBasicInfo());
             throw new RuntimeException("Simulated error ...", new FailedRequestException(feedRequest));
+        }
+
+        @Override
+        public void shutdown() {
+        }
+
+    }
+
+    private static class HttpClientFirstFailMock implements HttpClient {
+
+        private final AtomicBoolean failed = new AtomicBoolean(false);
+
+        @Override
+        public CompletableFuture<byte[]> getAsync(FeedRequest feedRequest) {
+            log.info("Pulling {}", feedRequest.toStringBasicInfo());
+            if (!failed.getAndSet(true)) throw new RuntimeException("Simulated error ...", new FailedRequestException(feedRequest));
+
+            CompletableFuture<byte[]> completableFuture = new CompletableFuture<>();
+            completableFuture.complete(pulledData);
+            return completableFuture;
         }
 
         @Override
