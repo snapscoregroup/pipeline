@@ -21,7 +21,7 @@ jobs:
         run: ./gradlew clean test build
 
       - name: Publish
-        if: github.ref_name == 'master'
+        if: github.ref_type == 'tag'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: ./gradlew publish
+        run: ./gradlew publish -Pversion=${{ github.ref_name }}

@@ -1,7 +1,6 @@
 //file:noinspection GroovyUnusedAssignment
 //file:noinspection GrDeprecatedAPIUsage
 group 'com.snapscore'
-version "${JAR_VERSION}"
 
 buildscript {
     repositories {
