@@ -58,9 +58,7 @@ dependencies {
     api group: 'io.vertx', name: 'vertx-core', version: "${vertxVersion}"
     testImplementation group: 'io.vertx', name: 'vertx-unit', version: "${vertxVersion}"
 
-    // logback
-    api group: 'ch.qos.logback', name: 'logback-classic', version: '1.4.8'
-    api group: 'ch.qos.logback', name: 'logback-core', version: '1.4.8'
+    // logging
     api group: 'org.slf4j', name: 'slf4j-api', version: '1.7.36'
 
     api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
