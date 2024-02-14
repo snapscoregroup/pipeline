@@ -8,4 +8,5 @@ jobs:
         uses: actions/delete-package-versions@v5
         with:
           package-name: com.snapscore.pipeline
+          package-type: maven
           min-versions-to-keep: 10
