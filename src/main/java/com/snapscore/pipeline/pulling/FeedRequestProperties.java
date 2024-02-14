@@ -15,7 +15,7 @@ public class FeedRequestProperties {
     public FeedRequestProperties() {
     }
 
-    void putProperty(Enum<?> propertyType, Object value) {
+    public void putProperty(Enum<?> propertyType, Object value) {
         if (propertyType != null && value != null) {
             properties.put(propertyType, value);
         }
