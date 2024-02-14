@@ -5,7 +5,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - name: Delete old packages
-        uses: actions/delete-package-versions@v3
+        uses: actions/delete-package-versions@v5
         with:
           package-name: com.snapscore.pipeline
           min-versions-to-keep: 10
