@@ -35,15 +35,15 @@ configurations.all {
     resolutionStrategy.cacheChangingModulesFor 0, 'seconds'
 }
 
-def vertxVersion = '4.4.4'
+def vertxVersion = '4.5.0'
 
 dependencies {
 
     // https://mvnrepository.com/artifact/com.squareup.okhttp3/okhttp
-    api group: 'com.squareup.okhttp3', name: 'okhttp', version: '3.14.9'
+    api group: 'com.squareup.okhttp3', name: 'okhttp', version: '4.12.0'
 
-    api 'io.projectreactor.netty:reactor-netty:1.1.14'
-    api 'io.projectreactor:reactor-core:3.6.1'
+    api 'io.projectreactor.netty:reactor-netty:1.1.17'
+    api 'io.projectreactor:reactor-core:3.6.4'
 
     testImplementation('io.projectreactor:reactor-test:3.5.8')
     testImplementation 'io.projectreactor.tools:blockhound:1.0.8.RELEASE'
@@ -62,7 +62,7 @@ dependencies {
 
     api group: 'javax.xml.bind', name: 'jaxb-api', version: '2.3.1'
 
-    api 'org.apache.commons:commons-lang3:3.13.0'
+    api 'org.apache.commons:commons-lang3:3.14.0'
     api group: 'org.apache.commons', name: 'commons-collections4', version: '4.4'
 }
 
